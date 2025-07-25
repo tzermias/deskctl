@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"sync"
 
 	"github.com/spf13/cobra"
@@ -20,39 +21,30 @@ var (
 	mu      sync.RWMutex
 )
 
-// listDevicesCmd represents the listDevices command
 var listDevicesCmd = &cobra.Command{
-	Use:   "listDevices",
-	Short: "List available Bluetooth desks",
+	Use:   "devices",
+	Short: "List available Bluetooth standing desks",
 	Run: func(cmd *cobra.Command, args []string) {
 
 		adapter := bluetooth.DefaultAdapter
 
 		err := adapter.Enable()
 		if err != nil {
-			panic("Failed to enable BLE adapter")
+			fmt.Println("Could not enable Bluetooth adapter.", err)
+			os.Exit(-1)
 		}
 
 		results = make(map[string]bluetooth.ScanResult)
 		err = adapter.Scan(onScan)
 		if err != nil {
-			panic("Failed to register scan callback")
+			fmt.Println("Could not scan available devices.", err)
+			os.Exit(-1)
 		}
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(listDevicesCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// listDevicesCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// listDevicesCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
 func onScan(adapter *bluetooth.Adapter, device bluetooth.ScanResult) {
@@ -61,9 +53,9 @@ func onScan(adapter *bluetooth.Adapter, device bluetooth.ScanResult) {
 			//Stop scanning if we scan the same device again.
 			_ = adapter.StopScan()
 			//Print results
-			fmt.Printf("%-20s %-40s %-10s\n", "ADDRESS", "NAME", "RSSI")
+			fmt.Printf("%-20s %-30s %-10s\n", "ADDRESS", "NAME", "RSSI")
 			for device_address, device := range results {
-				fmt.Printf("%-20s %-40s %-10d\n", device_address, device.LocalName(), device.RSSI)
+				fmt.Printf("%-20s %-30s %-10d\n", device_address, device.LocalName(), device.RSSI)
 			}
 		} else {
 			mu.Lock()

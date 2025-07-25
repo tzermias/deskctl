@@ -5,15 +5,15 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/tzermias/deskcli/pkg/jiecang"
 	"tinygo.org/x/bluetooth"
 )
 
-// gotoMemoryCmd represents the gotoMemory command
 var gotoMemoryCmd = &cobra.Command{
-	Use:   "gotoMemory",
+	Use:   "goto-memory",
 	Short: "Go to memory (1-3)",
 	Long:  `Moves the desk to the designated memory`,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -21,13 +21,14 @@ var gotoMemoryCmd = &cobra.Command{
 
 		err := adapter.Enable()
 		if err != nil {
-			panic("Failed to enable BLE adapter")
+			fmt.Println("Could not enable Bluetooth adapter.", err)
+			os.Exit(-1)
 		}
 
 		//Parse Bluetooth MAC address from argument
 		mac, err := bluetooth.ParseMAC(address)
 		if err != nil {
-			panic("Failed to parse MAC address")
+			fmt.Printf("Invalid MAC address [%s]", address)
 		}
 		j := jiecang.Init(adapter, bluetooth.Address{MACAddress: bluetooth.MACAddress{MAC: mac}})
 		switch memory_num {
@@ -38,7 +39,7 @@ var gotoMemoryCmd = &cobra.Command{
 		case 3:
 			j.GoToMemory3()
 		default:
-			fmt.Println("Memory %d is not a valid memory", memory_num)
+			fmt.Printf("Memory %d is not a valid memory", memory_num)
 		}
 
 		err = j.Disconnect()
