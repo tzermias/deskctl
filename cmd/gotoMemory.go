@@ -50,14 +50,11 @@ var gotoMemoryCmd = &cobra.Command{
 	},
 }
 
-var address string
 var memory_num int
 
 func init() {
 	rootCmd.AddCommand(gotoMemoryCmd)
 
-	gotoMemoryCmd.Flags().StringVarP(&address, "address", "a", "", "Device address")
-	gotoMemoryCmd.MarkFlagRequired("address")
 	gotoMemoryCmd.Flags().IntVarP(&memory_num, "memory", "m", 1, "Memory address  of the desk (1-3)")
 	gotoMemoryCmd.MarkFlagRequired("memory")
 }

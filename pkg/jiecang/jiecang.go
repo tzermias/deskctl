@@ -73,7 +73,6 @@ func Init(a *bluetooth.Adapter, addr bluetooth.Address) *Jiecang {
 			bluetooth.New16BitUUID(BLECharDataInId),
 			bluetooth.New16BitUUID(BLECharDataOutId),
 		})
-		// If error, bail out
 		if err != nil {
 			log.Println("error getting characteristics:", err.Error())
 		}
@@ -243,8 +242,7 @@ func isValidData(buf []byte) bool {
 }
 
 func readHeight(buf []byte) uint8 {
-	// Check that the data from the dataIn are correct
-	if buf[0] == 0xf2 && buf[1] == 0xf2 && buf[2] == 0x01 && buf[3] == 0x03 && buf[6] == 0x07 && buf[8] == 0x7e {
+	if buf[3] == 0x03 {
 		height, _ := strconv.ParseInt(fmt.Sprintf("%x", buf[4:6]), 16, 32)
 		// Hack to round the value
 		return uint8(math.Round(float64(height / 10.0)))

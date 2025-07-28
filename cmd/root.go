@@ -9,15 +9,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// rootCmd represents the base command when called without any subcommands
+var address string
+
 var rootCmd = &cobra.Command{
 	Use:   "deskctl",
 	Short: "A CLI tool to control and manage Jiecang standing desks",
 	Long: `Controls standing desks equipped with Jiecang controllers
 Moves the desk up/down, manages memory presets`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	// Run: func(cmd *cobra.Command, args []string) { },
+	Run: func(cmd *cobra.Command, args []string) {
+		cmd.HelpFunc()
+	},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -35,8 +36,5 @@ func init() {
 	// will be global for your application.
 
 	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.deskctl.yaml)")
-
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	rootCmd.PersistentFlags().StringVarP(&address, "address", "a", "", "Device address")
 }
