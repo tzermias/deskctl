@@ -4,25 +4,40 @@ Copyright © 2025 Aris Tzermias
 package cmd
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
+	"tinygo.org/x/bluetooth"
 )
 
 var address string
+
+var adapter *bluetooth.Adapter
 
 var rootCmd = &cobra.Command{
 	Use:   "deskctl",
 	Short: "A CLI tool to control and manage Jiecang standing desks",
 	Long: `Controls standing desks equipped with Jiecang controllers
 Moves the desk up/down, manages memory presets`,
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		// Initialize bluetooth adapter
+		adapter = bluetooth.DefaultAdapter
+		err := adapter.Enable()
+		if err != nil {
+			fmt.Printf("Could not enable Bluetooth adapter: %v\n", err)
+			return
+		}
+
+	},
 	Run: func(cmd *cobra.Command, args []string) {
-		cmd.HelpFunc()
+		cmd.Help()
+		os.Exit(0)
+	},
+	PersistentPostRun: func(cmd *cobra.Command, args []string) {
 	},
 }
 
-// Execute adds all child commands to the root command and sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {
@@ -31,10 +46,5 @@ func Execute() {
 }
 
 func init() {
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
-
-	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.deskctl.yaml)")
 	rootCmd.PersistentFlags().StringVarP(&address, "address", "a", "", "Device address")
 }

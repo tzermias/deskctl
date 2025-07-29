@@ -6,31 +6,43 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/spf13/cobra"
 	"github.com/tzermias/deskcli/pkg/jiecang"
 	"tinygo.org/x/bluetooth"
 )
 
+var memory_num int
+var j *jiecang.Jiecang
+
 var gotoMemoryCmd = &cobra.Command{
-	Use:   "goto-memory",
-	Short: "Go to memory (1-3)",
-	Long:  `Moves the desk to the designated memory`,
+	Use:   "goto-memory [MEMORY]",
+	Short: "Moves the desk to memory",
+	Long:  `Moves the desk to the designated memory. [MEMORY] is between 1-3.`,
+	Args:  cobra.ExactArgs(1),
+	PreRun: func(cmd *cobra.Command, args []string) {
+		var err error
+		// Validate that arugment is an integer between 1 and 3
+		memory_num, err = strconv.Atoi(args[0])
+		if err != nil || memory_num < 1 || memory_num > 3 {
+			fmt.Println("Memory number is not within boundaries (1-3)")
+			os.Exit(1)
+		}
+
+		// Validate MAC address
+		var mac bluetooth.MAC
+		mac, err = bluetooth.ParseMAC(address)
+		if err != nil {
+			fmt.Printf("Invalid MAC address [%s]\n", address)
+			os.Exit(1)
+		}
+
+		//Initialize device
+		j = jiecang.Init(adapter, bluetooth.Address{MACAddress: bluetooth.MACAddress{MAC: mac}})
+
+	},
 	Run: func(cmd *cobra.Command, args []string) {
-		adapter := bluetooth.DefaultAdapter
-
-		err := adapter.Enable()
-		if err != nil {
-			fmt.Println("Could not enable Bluetooth adapter.", err)
-			os.Exit(-1)
-		}
-
-		//Parse Bluetooth MAC address from argument
-		mac, err := bluetooth.ParseMAC(address)
-		if err != nil {
-			fmt.Printf("Invalid MAC address [%s]", address)
-		}
-		j := jiecang.Init(adapter, bluetooth.Address{MACAddress: bluetooth.MACAddress{MAC: mac}})
 		switch memory_num {
 		case 1:
 			j.GoToMemory1()
@@ -39,22 +51,20 @@ var gotoMemoryCmd = &cobra.Command{
 		case 3:
 			j.GoToMemory3()
 		default:
-			fmt.Printf("Memory %d is not a valid memory", memory_num)
+			// We should never reach this state as we validate this argument with PreRun hook.
+			fmt.Printf("Memory %d is not within boundaries (1-3)", memory_num)
 		}
-
-		err = j.Disconnect()
+	},
+	PostRun: func(cmd *cobra.Command, args []string) {
+		err := j.Disconnect()
 		if err != nil {
-			println("error when disconnecting:", err)
+			fmt.Printf("Error when disconnecting: %v\n", err)
 			return
 		}
 	},
 }
 
-var memory_num int
-
 func init() {
 	rootCmd.AddCommand(gotoMemoryCmd)
 
-	gotoMemoryCmd.Flags().IntVarP(&memory_num, "memory", "m", 1, "Memory address  of the desk (1-3)")
-	gotoMemoryCmd.MarkFlagRequired("memory")
 }
