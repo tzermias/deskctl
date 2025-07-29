@@ -6,13 +6,16 @@ Currently limited to Jiecang standing desks
 Tool is based on findings from [phord/Jarvis](https://github.com/phord/Jarvis) and [pimp-my-desk/desk-control](https://gitlab.com/pimp-my-desk/desk-control) where most UART commands were found.
 `deskcli` just establishes a Bluetooth connection to the desk and issues respective commands. That's it.
 
+The tool is under development and only a small subset of features (moving the desk to memory presets) is supported at the moment.
+
 ## Prerequisites
 
-A Bluetooth 4.0 adapter
+* Bluetooth 4.0 adapter
+* Jiecang compatible standing desk (of course :P)
 
-## Installation
+## Building 
 ```bash
-go get github.com/tzermias/deskctl@latest
+go build -o deskctl
 ```
 
 ## Usage
@@ -21,9 +24,9 @@ Find supported devices
 deskctl devices
 ```
 
-Go to preset from Memory 1
+Go to memory preset number 1 (using the MAC address of the desk as `<DEVICE_MAC_ADDRESS>`)
 ```bash
-deskctl goto-memory -a <DEVICE_MAC_ADDRESS> --memory 1
+deskctl goto-memory -a <DEVICE_MAC_ADDRESS> 1
 ```
 
 ## Acknowledgements
