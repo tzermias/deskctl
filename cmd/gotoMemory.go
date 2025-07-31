@@ -9,7 +9,7 @@ import (
 	"strconv"
 
 	"github.com/spf13/cobra"
-	"github.com/tzermias/deskcli/pkg/jiecang"
+	"github.com/tzermias/deskctl/pkg/jiecang"
 	"tinygo.org/x/bluetooth"
 )
 
