@@ -4,7 +4,7 @@ A CLI tool to manage Bluetooth standing desks.
 Currently limited to Jiecang standing desks
 
 Tool is based on findings from [phord/Jarvis](https://github.com/phord/Jarvis) and [pimp-my-desk/desk-control](https://gitlab.com/pimp-my-desk/desk-control) where most UART commands were found.
-`deskcli` just establishes a Bluetooth connection to the desk and issues respective commands. That's it.
+`deskctl` just establishes a Bluetooth connection to the desk and issues respective commands. That's it.
 
 The tool is under development and only a small subset of features (moving the desk to memory presets) is supported at the moment.
 

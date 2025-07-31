@@ -1,4 +1,4 @@
-module github.com/tzermias/deskcli
+module github.com/tzermias/deskctl
 
 go 1.22.2
 
