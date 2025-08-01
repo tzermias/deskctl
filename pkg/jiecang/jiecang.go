@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"math"
-	"strconv"
 	"sync"
 	"time"
 
@@ -237,7 +236,7 @@ func (j *Jiecang) characteristicReceiver(buf []byte) {
 				j.HighestHeight, j.LowestHeight = readHeightRange(msg[i])
 				j.mu.Unlock()
 			case 0x25, 0x26, 0x27, 0x28: // Data contains height for each memory preset (1-4). Memory 4 is currently 0
-				memory, _ := strconv.ParseInt(fmt.Sprintf("%x", msg[i][2]%0x24), 16, 32)
+				memory := int(msg[i][2] % 0x24)
 				memory_name := fmt.Sprintf("memory%d", memory)
 				j.mu.Lock()
 				j.presets[memory_name] = readMemoryPreset(msg[i])
@@ -274,21 +273,20 @@ func isValidData(buf []byte) bool {
 	}
 
 	// Calculate checksum and verify if its correct
-	data_type, _ := strconv.ParseInt(fmt.Sprintf("%x", buf[2]), 16, 32)
-	data_len, _ := strconv.ParseInt(fmt.Sprintf("%x", buf[3]), 16, 32)
-	received_checksum, _ := strconv.ParseInt(fmt.Sprintf("%x", buf[len(buf)-2]), 16, 32)
+	data_type := int(buf[2])
+	data_len := int(buf[3])
+	received_checksum := int(buf[len(buf)-2])
 
 	calc_checksum := data_type + data_len
-	for i := 0; i < int(data_len); i++ {
-		tmp, _ := strconv.ParseInt(fmt.Sprintf("%x", buf[4+i]), 16, 32)
-		calc_checksum += tmp
+	for i := 0; i < data_len; i++ {
+		calc_checksum += int(buf[4+i])
 	}
 	return (calc_checksum % 256) == received_checksum
 }
 
 func readHeight(buf []byte) uint8 {
 	if buf[3] == 0x03 {
-		height, _ := strconv.ParseInt(fmt.Sprintf("%x", buf[4:6]), 16, 32)
+		height := int(buf[4])*256 + int(buf[5])
 		// Hack to round the value
 		return uint8(math.Round(float64(height / 10.0)))
 	}
@@ -297,7 +295,7 @@ func readHeight(buf []byte) uint8 {
 
 func readMemoryPreset(buf []byte) uint8 {
 	if buf[3] == 0x02 {
-		preset, _ := strconv.ParseInt(fmt.Sprintf("%x", buf[4:6]), 16, 32)
+		preset := int(buf[4])*256 + int(buf[5])
 		// Hack to round the value
 		return uint8(math.Round(float64(preset / 10.0)))
 	}
@@ -306,8 +304,8 @@ func readMemoryPreset(buf []byte) uint8 {
 
 func readHeightRange(buf []byte) (uint8, uint8) {
 	if buf[3] == 0x04 {
-		highestHeight, _ := strconv.ParseInt(fmt.Sprintf("%x", buf[4:6]), 16, 32)
-		lowestHeight, _ := strconv.ParseInt(fmt.Sprintf("%x", buf[6:8]), 16, 32)
+		highestHeight := int(buf[4])*256 + int(buf[5])
+		lowestHeight := int(buf[6])*256 + int(buf[7])
 		return uint8(math.Round(float64(highestHeight / 10.0))),
 			uint8(math.Round(float64(lowestHeight / 10.0)))
 	}

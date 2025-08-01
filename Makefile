@@ -12,7 +12,7 @@ deps:
 	go mod tidy
 
 test: deps
-	go test
+	go test -v ./...
 
 fmt:
 	gofmt -s -w .
