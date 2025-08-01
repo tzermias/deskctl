@@ -1,6 +1,7 @@
 package jiecang
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"math"
@@ -12,14 +13,18 @@ import (
 )
 
 var commands = map[string][]byte{
-	"up":                 []byte{0xf1, 0xf1, 0x01, 0x00, 0x01, 0x7e},
-	"down":               []byte{0xf1, 0xf1, 0x02, 0x00, 0x02, 0x7e},
-	"save_memory1":       []byte{0xf1, 0xf1, 0x03, 0x00, 0x03, 0x7e},
-	"save_memory2":       []byte{0xf1, 0xf1, 0x04, 0x00, 0x04, 0x7e},
-	"goto_memory1":       []byte{0xf1, 0xf1, 0x05, 0x00, 0x05, 0x7e},
-	"goto_memory2":       []byte{0xf1, 0xf1, 0x06, 0x00, 0x06, 0x7e},
-	"fetch_height":       []byte{0xf1, 0xf1, 0x07, 0x00, 0x07, 0x7e},
-	"fetch_height_range": []byte{0xf1, 0xf1, 0x0c, 0x00, 0x0c, 0x7e},
+	"up":                 {0xf1, 0xf1, 0x01, 0x00, 0x01, 0x7e},
+	"down":               {0xf1, 0xf1, 0x02, 0x00, 0x02, 0x7e},
+	"save_memory1":       {0xf1, 0xf1, 0x03, 0x00, 0x03, 0x7e},
+	"save_memory2":       {0xf1, 0xf1, 0x04, 0x00, 0x04, 0x7e},
+	"goto_memory1":       {0xf1, 0xf1, 0x05, 0x00, 0x05, 0x7e},
+	"goto_memory2":       {0xf1, 0xf1, 0x06, 0x00, 0x06, 0x7e},
+	"fetch_height":       {0xf1, 0xf1, 0x07, 0x00, 0x07, 0x7e},
+	"fetch_height_range": {0xf1, 0xf1, 0x0c, 0x00, 0x0c, 0x7e},
+	"save_memory3":       {0xf1, 0xf1, 0x25, 0x00, 0x25, 0x7e},
+	"goto_memory3":       {0xf1, 0xf1, 0x27, 0x00, 0x27, 0x7e},
+	"fetch_stand_time":   {0xf1, 0xf1, 0xa2, 0x00, 0xa2, 0x7e},
+	"fetch_all_time":     {0xf1, 0xf1, 0xaa, 0x00, 0xaa, 0x7e},
 }
 
 const (
@@ -43,6 +48,12 @@ type Jiecang struct {
 	//Highest and lowest height of desk
 	LowestHeight  uint8
 	HighestHeight uint8
+
+	//Desk settings
+	// Memory mode (One-touch mode vs constant touch)
+	MemoryConstantTouchMode bool
+	// Anti-collision sensitivity (1 High, 2 Medium, 3 Low)
+	AntiCollisionSensitivity uint8 //TODO: Use iota
 }
 
 func Init(a *bluetooth.Adapter, addr bluetooth.Address) *Jiecang {
@@ -101,6 +112,9 @@ func Init(a *bluetooth.Adapter, addr bluetooth.Address) *Jiecang {
 
 	// Fetch desk low and high height
 	j.FetchHeightRange()
+
+	j.FetchStandTime()
+	j.FetchAllTime()
 
 	j.device = d
 	return j
@@ -183,7 +197,20 @@ func (j *Jiecang) FetchHeightRange() {
 		            LEN HGH LOW  CSUM
 	*/
 	j.sendCommand(commands["fetch_height_range"])
+	j.sendCommand(commands["fetch_height_range"])
 
+}
+
+func (j *Jiecang) FetchStandTime() {
+	// Implements fetch_stand_time command
+	j.sendCommand(commands["fetch_stand_time"])
+	j.sendCommand(commands["fetch_stand_time"])
+}
+
+func (j *Jiecang) FetchAllTime() {
+	// Implements fetch_all_time command
+	j.sendCommand(commands["fetch_all_time"])
+	j.sendCommand(commands["fetch_all_time"])
 }
 
 func (j *Jiecang) characteristicReceiver(buf []byte) {
@@ -194,29 +221,47 @@ func (j *Jiecang) characteristicReceiver(buf []byte) {
 	Previous to last byte is the checksum.
 	*/
 
-	if isValidData(buf) {
-		switch buf[2] {
-		case 0x01: // Data contains height measurements
-			//f2 f2 01 03 03 37 07 45 7e
-			// Use mutex to set current height
-			j.mu.Lock()
-			j.currentHeight = readHeight(buf)
-			j.mu.Unlock()
-		case 0x07: // Data contains height range of desk
-			j.mu.Lock()
-			j.HighestHeight, j.LowestHeight = readHeightRange(buf)
-			j.mu.Unlock()
-		case 0x25, 0x26, 0x27, 0x28: // Data contains height for each memory preset (1-4). Memory 4 is currently 0
-			memory, _ := strconv.ParseInt(fmt.Sprintf("%x", buf[2]%0x24), 16, 32)
-			memory_name := fmt.Sprintf("memory%d", memory)
-			j.mu.Lock()
-			j.presets[memory_name] = readMemoryPreset(buf)
-			j.mu.Unlock()
-		default: // Any other case
-			log.Printf("Received: %x", buf)
+	// Buffer might contain multiple messages
+	msg := bytes.SplitAfter(buf, []byte{0x7e})
+	for i := 0; i < len(msg)-1; i++ {
+		if isValidData(msg[i]) {
+			switch msg[i][2] {
+			case 0x01: // Data contains height measurements
+				//f2 f2 01 03 03 37 07 45 7e
+				// Use mutex to set current height
+				j.mu.Lock()
+				j.currentHeight = readHeight(msg[i])
+				j.mu.Unlock()
+			case 0x07: // Data contains height range of desk
+				j.mu.Lock()
+				j.HighestHeight, j.LowestHeight = readHeightRange(msg[i])
+				j.mu.Unlock()
+			case 0x25, 0x26, 0x27, 0x28: // Data contains height for each memory preset (1-4). Memory 4 is currently 0
+				memory, _ := strconv.ParseInt(fmt.Sprintf("%x", msg[i][2]%0x24), 16, 32)
+				memory_name := fmt.Sprintf("memory%d", memory)
+				j.mu.Lock()
+				j.presets[memory_name] = readMemoryPreset(msg[i])
+				j.mu.Unlock()
+			case 0x0e: // Data contains units setting
+				fmt.Printf("Unit settings: %x\n", msg[i][3])
+			case 0x17: // Unknonwn setting so far
+				continue
+			case 0x19: // Data contains memory mode setting
+				if msg[i][3] == 0x01 {
+					j.mu.Lock()
+					j.MemoryConstantTouchMode = true
+					j.mu.Unlock()
+				}
+			case 0x1d: // Data contains anti-collision sensitivity
+				j.mu.Lock()
+				j.AntiCollisionSensitivity = uint8(msg[i][3])
+				j.mu.Unlock()
+			default: // Any other case
+				log.Printf("Received: %x", msg[i])
+			}
+		} else {
+			log.Printf("Received: %x", msg[i])
 		}
-	} else {
-		log.Printf("Received: %x", buf)
 	}
 }
 
