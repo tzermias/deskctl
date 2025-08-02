@@ -22,6 +22,7 @@ var commands = map[string][]byte{
 	"fetch_height_range": {0xf1, 0xf1, 0x0c, 0x00, 0x0c, 0x7e},
 	"save_memory3":       {0xf1, 0xf1, 0x25, 0x00, 0x25, 0x7e},
 	"goto_memory3":       {0xf1, 0xf1, 0x27, 0x00, 0x27, 0x7e},
+	"stop":               {0xf1, 0xf1, 0x2b, 0x00, 0x27, 0x7e},
 	"fetch_stand_time":   {0xf1, 0xf1, 0xa2, 0x00, 0xa2, 0x7e},
 	"fetch_all_time":     {0xf1, 0xf1, 0xaa, 0x00, 0xaa, 0x7e},
 }
@@ -128,6 +129,16 @@ func (j *Jiecang) sendCommand(buf []byte) {
 	_, _ = j.dataIn.WriteWithoutResponse(buf)
 }
 
+// Moves the desk up
+func (j *Jiecang) Up() {
+	j.sendCommand(commands["up"])
+}
+
+// Moves the desk down
+func (j *Jiecang) Down() {
+	j.sendCommand(commands["down"])
+}
+
 func (j *Jiecang) GoToMemory1() {
 	// Send the connand twice the first time
 	j.sendCommand(commands["goto_memory1"])
@@ -212,6 +223,33 @@ func (j *Jiecang) FetchAllTime() {
 	j.sendCommand(commands["fetch_all_time"])
 }
 
+func (j *Jiecang) GoToHeight(height uint8) {
+	//Ensure that height is within low and high limits of the desk.
+	if height > j.HighestHeight || height < j.LowestHeight {
+		fmt.Printf("Height %d is out of range of the desk (Low: %d, High: %d)\n", height, j.LowestHeight, j.HighestHeight)
+		return
+	}
+	data0 := byte((int(height) * 10) / 256)
+	data1 := byte((int(height) * 10) % 256)
+	command := []byte{
+		0xf1,
+		0xf1,
+		0x1b,
+		0x02,
+		data0,
+		data1,
+		byte((int(0x1b) + int(0x02) + int(data0) + int(data1)) % 256),
+		0x7e,
+	}
+
+	j.sendCommand(command)
+	for (j.currentHeight - height) != 0 {
+		j.sendCommand(command)
+		time.Sleep(200 * time.Millisecond)
+	}
+	j.sendCommand(commands["stop"])
+}
+
 func (j *Jiecang) characteristicReceiver(buf []byte) {
 	/* Data should always start with f2f2 (2 bytes) and end with 7e
 	3rd byte is type/command?
@@ -251,6 +289,8 @@ func (j *Jiecang) characteristicReceiver(buf []byte) {
 					j.MemoryConstantTouchMode = true
 					j.mu.Unlock()
 				}
+			case 0x1b: // Data contains response from go to height command
+				continue
 			case 0x1d: // Data contains anti-collision sensitivity
 				j.mu.Lock()
 				j.AntiCollisionSensitivity = uint8(msg[i][3])
