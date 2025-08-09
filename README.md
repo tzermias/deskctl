@@ -1,4 +1,5 @@
 # deskctl
+[![Build](https://github.com/tzermias/deskctl/actions/workflows/build.yml/badge.svg)](https://github.com/tzermias/deskctl/actions/workflows/build.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/tzermias/deskctl)](https://goreportcard.com/report/github.com/tzermias/deskctl)
 
 A tool to remote control Bluetooth-enabled standing desks.
