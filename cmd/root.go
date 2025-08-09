@@ -31,7 +31,7 @@ Moves the desk up/down, manages memory presets`,
 
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		cmd.Help()
+		_ = cmd.Help()
 		os.Exit(0)
 	},
 	PersistentPostRun: func(cmd *cobra.Command, args []string) {
