@@ -1,0 +1,101 @@
+package jiecang
+
+import (
+	"fmt"
+	"math"
+	"time"
+)
+
+// Contains functions for height movement only.
+
+// Moves the desk up
+func (j *Jiecang) Up() {
+	j.sendCommand(commands["up"])
+}
+
+// Moves the desk down
+func (j *Jiecang) Down() {
+	j.sendCommand(commands["down"])
+}
+
+// Moves the desk to the designated height. Height should be within the limits
+// of the desk.
+func (j *Jiecang) GoToHeight(height uint8) {
+	//Ensure that height is within low and high limits of the desk.
+	if height > j.HighestHeight || height < j.LowestHeight {
+		fmt.Printf("Height %d is out of range of the desk (Low: %d, High: %d)\n", height, j.LowestHeight, j.HighestHeight)
+		return
+	}
+	data0 := byte((int(height) * 10) / 256)
+	data1 := byte((int(height) * 10) % 256)
+	command := []byte{
+		0xf1,
+		0xf1,
+		0x1b,
+		0x02,
+		data0,
+		data1,
+		byte((int(0x1b) + int(0x02) + int(data0) + int(data1)) % 256),
+		0x7e,
+	}
+
+	j.sendCommand(command)
+	for (j.currentHeight - height) != 0 {
+		j.sendCommand(command)
+		time.Sleep(200 * time.Millisecond)
+	}
+	j.sendCommand(commands["stop"])
+}
+
+func (j *Jiecang) FetchHeight() {
+	//Implements fetch_height command
+
+	// Returns
+	/*
+		f2f2 25 02 044e 79 7e //044e =1100 in decimal. Memory 1
+		f2f2 25 02 044e 79 7e
+		f2f2 26 02 030c 37 7e //030c = 780 in dec. Memory 2
+		f2f2 26 02 030c 37 7e
+		f2f2 27 02 0372 9e 7e //0372 = 882 in dec. Memory 3
+		f2f2 27 02 0372 9e 7e
+		f2f2 28 02 0000 2a 7e // Memory 4?
+		f2f2 28 02 0000 2a 7e
+
+	*/
+	j.sendCommand(commands["fetch_height"])
+	j.sendCommand(commands["fetch_height"])
+
+}
+
+func (j *Jiecang) FetchHeightRange() {
+	// Implements fetch_height_range command
+
+	//Retuns
+	/*
+			  f2f2 07 04 04f8 026c 75 7e
+		            LEN HGH LOW  CSUM
+	*/
+	j.sendCommand(commands["fetch_height_range"])
+	j.sendCommand(commands["fetch_height_range"])
+
+}
+
+func readHeight(buf []byte) uint8 {
+	if buf[3] == 0x03 {
+		height := int(buf[4])*256 + int(buf[5])
+		// Hack to round the value
+		return uint8(math.Round(float64(height / 10.0)))
+	}
+	return 0
+}
+
+// Handles the response of FetchHeightRange command from the controller
+func readHeightRange(buf []byte) (uint8, uint8) {
+	if buf[3] == 0x04 {
+		highestHeight := int(buf[4])*256 + int(buf[5])
+		lowestHeight := int(buf[6])*256 + int(buf[7])
+		return uint8(math.Round(float64(highestHeight / 10.0))),
+			uint8(math.Round(float64(lowestHeight / 10.0)))
+	}
+	return 0, 0
+}
