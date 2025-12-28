@@ -4,9 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
-	"math"
 	"sync"
-	"time"
 
 	"tinygo.org/x/bluetooth"
 )
@@ -129,88 +127,6 @@ func (j *Jiecang) sendCommand(buf []byte) {
 	_, _ = j.dataIn.WriteWithoutResponse(buf)
 }
 
-// Moves the desk up
-func (j *Jiecang) Up() {
-	j.sendCommand(commands["up"])
-}
-
-// Moves the desk down
-func (j *Jiecang) Down() {
-	j.sendCommand(commands["down"])
-}
-
-func (j *Jiecang) GoToMemory1() {
-	// Send the connand twice the first time
-	j.sendCommand(commands["goto_memory1"])
-	for (j.currentHeight - j.presets["memory1"]) != 0 {
-		j.sendCommand(commands["goto_memory1"])
-
-		//log.Printf("Height: %d cm Preset1: %d", j.currentHeight, j.presets["memory1"])
-		time.Sleep(200 * time.Millisecond)
-	}
-}
-
-func (j *Jiecang) GoToMemory2() {
-	// Send the connand twice the first time
-	j.sendCommand(commands["goto_memory2"])
-	for (j.currentHeight - j.presets["memory2"]) != 0 {
-		j.sendCommand(commands["goto_memory2"])
-		//log.Printf("Height: %d cm", j.currentHeight)
-		time.Sleep(200 * time.Millisecond)
-	}
-}
-
-func (j *Jiecang) GoToMemory3() {
-	// Send the connand twice the first time
-	j.sendCommand(commands["goto_memory3"])
-	for (j.currentHeight - j.presets["memory3"]) != 0 {
-		j.sendCommand(commands["goto_memory3"])
-		//log.Printf("Height: %d cm", j.currentHeight)
-		time.Sleep(200 * time.Millisecond)
-	}
-}
-
-func (j *Jiecang) SaveMemory1() {
-	//Save memory
-	j.sendCommand(commands["save_memory1"])
-
-	log.Printf("Height: %d cm", j.currentHeight)
-	time.Sleep(200 * time.Millisecond)
-}
-
-func (j *Jiecang) FetchHeight() {
-	//Implements fetch_height command
-
-	// Returns
-	/*
-		f2f2 25 02 044e 79 7e //044e =1100 in decimal. Memory 1
-		f2f2 25 02 044e 79 7e
-		f2f2 26 02 030c 37 7e //030c = 780 in dec. Memory 2
-		f2f2 26 02 030c 37 7e
-		f2f2 27 02 0372 9e 7e //0372 = 882 in dec. Memory 3
-		f2f2 27 02 0372 9e 7e
-		f2f2 28 02 0000 2a 7e // Memory 4?
-		f2f2 28 02 0000 2a 7e
-
-	*/
-	j.sendCommand(commands["fetch_height"])
-	j.sendCommand(commands["fetch_height"])
-
-}
-
-func (j *Jiecang) FetchHeightRange() {
-	// Implements fetch_height_range command
-
-	//Retuns
-	/*
-			  f2f2 07 04 04f8 026c 75 7e
-		            LEN HGH LOW  CSUM
-	*/
-	j.sendCommand(commands["fetch_height_range"])
-	j.sendCommand(commands["fetch_height_range"])
-
-}
-
 func (j *Jiecang) FetchStandTime() {
 	// Implements fetch_stand_time command
 	j.sendCommand(commands["fetch_stand_time"])
@@ -221,33 +137,6 @@ func (j *Jiecang) FetchAllTime() {
 	// Implements fetch_all_time command
 	j.sendCommand(commands["fetch_all_time"])
 	j.sendCommand(commands["fetch_all_time"])
-}
-
-func (j *Jiecang) GoToHeight(height uint8) {
-	//Ensure that height is within low and high limits of the desk.
-	if height > j.HighestHeight || height < j.LowestHeight {
-		fmt.Printf("Height %d is out of range of the desk (Low: %d, High: %d)\n", height, j.LowestHeight, j.HighestHeight)
-		return
-	}
-	data0 := byte((int(height) * 10) / 256)
-	data1 := byte((int(height) * 10) % 256)
-	command := []byte{
-		0xf1,
-		0xf1,
-		0x1b,
-		0x02,
-		data0,
-		data1,
-		byte((int(0x1b) + int(0x02) + int(data0) + int(data1)) % 256),
-		0x7e,
-	}
-
-	j.sendCommand(command)
-	for (j.currentHeight - height) != 0 {
-		j.sendCommand(command)
-		time.Sleep(200 * time.Millisecond)
-	}
-	j.sendCommand(commands["stop"])
 }
 
 func (j *Jiecang) characteristicReceiver(buf []byte) {
@@ -302,57 +191,4 @@ func (j *Jiecang) characteristicReceiver(buf []byte) {
 			log.Printf("Received: %x", msg[i])
 		}
 	}
-}
-
-// Function that checks whether data received from DataIn are valid.
-// They should start with "f2f2", end with "7e" and te previous to last byte (which is a checksum) should not fail.
-func isValidData(buf []byte) bool {
-	// Check preamble and last byte
-	if buf[0] != 0xf2 || buf[1] != 0xf2 || buf[len(buf)-1] != 0x7e || len(buf) < 6 {
-		return false
-	}
-
-	// Calculate checksum and verify if its correct
-	data_type := int(buf[2])
-	data_len := int(buf[3])
-	// Length of the data should not exceed the length of the payload.
-	// Last two bytes should always be the checksum and EoM (Ox7e)
-	if data_len+3 >= len(buf)-2 {
-		return false
-	}
-	received_checksum := int(buf[len(buf)-2])
-
-	calc_checksum := data_type + data_len
-	for i := 0; i < data_len; i++ {
-		calc_checksum += int(buf[4+i])
-	}
-	return (calc_checksum % 256) == received_checksum
-}
-
-func readHeight(buf []byte) uint8 {
-	if buf[3] == 0x03 {
-		height := int(buf[4])*256 + int(buf[5])
-		// Hack to round the value
-		return uint8(math.Round(float64(height / 10.0)))
-	}
-	return 0
-}
-
-func readMemoryPreset(buf []byte) uint8 {
-	if buf[3] == 0x02 {
-		preset := int(buf[4])*256 + int(buf[5])
-		// Hack to round the value
-		return uint8(math.Round(float64(preset / 10.0)))
-	}
-	return 0
-}
-
-func readHeightRange(buf []byte) (uint8, uint8) {
-	if buf[3] == 0x04 {
-		highestHeight := int(buf[4])*256 + int(buf[5])
-		lowestHeight := int(buf[6])*256 + int(buf[7])
-		return uint8(math.Round(float64(highestHeight / 10.0))),
-			uint8(math.Round(float64(lowestHeight / 10.0)))
-	}
-	return 0, 0
 }
