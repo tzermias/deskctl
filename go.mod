@@ -5,7 +5,7 @@ go 1.22.2
 require (
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
-	tinygo.org/x/bluetooth v0.13.0
+	tinygo.org/x/bluetooth v0.14.0
 )
 
 require (
