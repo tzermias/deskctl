@@ -8,139 +8,98 @@ import (
 	"time"
 )
 
-// GoToMemoryX functions
+// GoToMemory moves the desk to the specified memory preset (1-3).
+// The operation can be cancelled via the provided context.
+func (j *Jiecang) GoToMemory(ctx context.Context, memoryNum int) error {
+	if memoryNum < 1 || memoryNum > 3 {
+		return fmt.Errorf("invalid memory number %d (must be 1-3)", memoryNum)
+	}
+
+	commandKey := fmt.Sprintf("goto_memory%d", memoryNum)
+	memoryKey := fmt.Sprintf("memory%d", memoryNum)
+
+	// Send the command twice the first time
+	if err := j.sendCommand(commands[commandKey]); err != nil {
+		return fmt.Errorf("failed to send goto memory%d command: %w", memoryNum, err)
+	}
+
+	ticker := time.NewTicker(200 * time.Millisecond)
+	defer ticker.Stop()
+
+	for {
+		j.mu.RLock()
+		currentHeight := j.currentHeight
+		targetHeight := j.presets[memoryKey]
+		j.mu.RUnlock()
+
+		if currentHeight == targetHeight {
+			break
+		}
+
+		select {
+		case <-ctx.Done():
+			// Context cancelled, return
+			fmt.Printf("Operation cancelled at height %d cm\n", currentHeight)
+			return nil
+		case <-ticker.C:
+			if err := j.sendCommand(commands[commandKey]); err != nil {
+				return fmt.Errorf("failed to send goto memory%d command: %w", memoryNum, err)
+			}
+		}
+	}
+	return nil
+}
+
+// GoToMemory1 moves the desk to memory preset 1.
+// Deprecated: Use GoToMemory(ctx, 1) instead.
 func (j *Jiecang) GoToMemory1(ctx context.Context) error {
-	// Send the command twice the first time
-	if err := j.sendCommand(commands["goto_memory1"]); err != nil {
-		return fmt.Errorf("failed to send goto memory1 command: %w", err)
-	}
-
-	ticker := time.NewTicker(200 * time.Millisecond)
-	defer ticker.Stop()
-
-	for {
-		j.mu.RLock()
-		currentHeight := j.currentHeight
-		targetHeight := j.presets["memory1"]
-		j.mu.RUnlock()
-
-		if currentHeight == targetHeight {
-			break
-		}
-
-		select {
-		case <-ctx.Done():
-			// Context cancelled, return
-			fmt.Printf("Operation cancelled at height %d cm\n", currentHeight)
-			return nil
-		case <-ticker.C:
-			if err := j.sendCommand(commands["goto_memory1"]); err != nil {
-				return fmt.Errorf("failed to send goto memory1 command: %w", err)
-			}
-		}
-	}
-	return nil
+	return j.GoToMemory(ctx, 1)
 }
 
+// GoToMemory2 moves the desk to memory preset 2.
+// Deprecated: Use GoToMemory(ctx, 2) instead.
 func (j *Jiecang) GoToMemory2(ctx context.Context) error {
-	// Send the command twice the first time
-	if err := j.sendCommand(commands["goto_memory2"]); err != nil {
-		return fmt.Errorf("failed to send goto memory2 command: %w", err)
-	}
-
-	ticker := time.NewTicker(200 * time.Millisecond)
-	defer ticker.Stop()
-
-	for {
-		j.mu.RLock()
-		currentHeight := j.currentHeight
-		targetHeight := j.presets["memory2"]
-		j.mu.RUnlock()
-
-		if currentHeight == targetHeight {
-			break
-		}
-
-		select {
-		case <-ctx.Done():
-			// Context cancelled, return
-			fmt.Printf("Operation cancelled at height %d cm\n", currentHeight)
-			return nil
-		case <-ticker.C:
-			if err := j.sendCommand(commands["goto_memory2"]); err != nil {
-				return fmt.Errorf("failed to send goto memory2 command: %w", err)
-			}
-		}
-	}
-	return nil
+	return j.GoToMemory(ctx, 2)
 }
 
+// GoToMemory3 moves the desk to memory preset 3.
+// Deprecated: Use GoToMemory(ctx, 3) instead.
 func (j *Jiecang) GoToMemory3(ctx context.Context) error {
-	// Send the command twice the first time
-	if err := j.sendCommand(commands["goto_memory3"]); err != nil {
-		return fmt.Errorf("failed to send goto memory3 command: %w", err)
+	return j.GoToMemory(ctx, 3)
+}
+
+// SaveMemory saves the current height to the specified memory preset (1-3).
+func (j *Jiecang) SaveMemory(memoryNum int) error {
+	if memoryNum < 1 || memoryNum > 3 {
+		return fmt.Errorf("invalid memory number %d (must be 1-3)", memoryNum)
 	}
 
-	ticker := time.NewTicker(200 * time.Millisecond)
-	defer ticker.Stop()
-
-	for {
-		j.mu.RLock()
-		currentHeight := j.currentHeight
-		targetHeight := j.presets["memory3"]
-		j.mu.RUnlock()
-
-		if currentHeight == targetHeight {
-			break
-		}
-
-		select {
-		case <-ctx.Done():
-			// Context cancelled, return
-			fmt.Printf("Operation cancelled at height %d cm\n", currentHeight)
-			return nil
-		case <-ticker.C:
-			if err := j.sendCommand(commands["goto_memory3"]); err != nil {
-				return fmt.Errorf("failed to send goto memory3 command: %w", err)
-			}
-		}
+	commandKey := fmt.Sprintf("save_memory%d", memoryNum)
+	if err := j.sendCommand(commands[commandKey]); err != nil {
+		return fmt.Errorf("failed to save memory%d: %w", memoryNum, err)
 	}
+
+	log.Printf("Saved height %d cm to memory %d", j.currentHeight, memoryNum)
+	time.Sleep(200 * time.Millisecond)
 	return nil
 }
 
-// Save memory commands
-
+// SaveMemory1 saves the current height to memory preset 1.
+// Deprecated: Use SaveMemory(1) instead.
 func (j *Jiecang) SaveMemory1() error {
-	//Save memory
-	if err := j.sendCommand(commands["save_memory1"]); err != nil {
-		return fmt.Errorf("failed to save memory1: %w", err)
-	}
-
-	log.Printf("Height: %d cm", j.currentHeight)
-	time.Sleep(200 * time.Millisecond)
-	return nil
+	return j.SaveMemory(1)
 }
 
+// SaveMemory2 saves the current height to memory preset 2.
+// Deprecated: Use SaveMemory(2) instead.
 func (j *Jiecang) SaveMemory2() error {
-	//Save memory
-	if err := j.sendCommand(commands["save_memory2"]); err != nil {
-		return fmt.Errorf("failed to save memory2: %w", err)
-	}
-
-	log.Printf("Height: %d cm", j.currentHeight)
-	time.Sleep(200 * time.Millisecond)
-	return nil
+	return j.SaveMemory(2)
 }
 
+// SaveMemory3 saves the current height to memory preset 3.
+// Deprecated: Use SaveMemory(3) instead.
 func (j *Jiecang) SaveMemory3() error {
-	//Save memory
-	if err := j.sendCommand(commands["save_memory3"]); err != nil {
-		return fmt.Errorf("failed to save memory3: %w", err)
-	}
-
-	log.Printf("Height: %d cm", j.currentHeight)
-	time.Sleep(200 * time.Millisecond)
-	return nil
+	return j.SaveMemory(3)
 }
 
 // Reads the response of the controller containing height settings of

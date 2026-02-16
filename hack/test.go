@@ -42,13 +42,13 @@ func onScan(adapter *bluetooth.Adapter, device bluetooth.ScanResult) {
 		defer cancel()
 
 		// Go to Memory1
-		if err := j.GoToMemory1(ctx); err != nil {
+		if err := j.GoToMemory(ctx, 1); err != nil {
 			log.Printf("Failed to go to memory1: %v\n", err)
 			return
 		}
 		time.Sleep(5 * time.Second)
 		// Go to Memory2
-		if err := j.GoToMemory2(ctx); err != nil {
+		if err := j.GoToMemory(ctx, 2); err != nil {
 			log.Printf("Failed to go to memory2: %v\n", err)
 			return
 		}
