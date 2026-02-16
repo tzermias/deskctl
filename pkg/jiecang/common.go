@@ -6,8 +6,13 @@ package jiecang
 // Function that checks whether data received from DataIn are valid.
 // They should start with "f2f2", end with "7e" and te previous to last byte (which is a checksum) should not fail.
 func isValidData(buf []byte) bool {
+	// Check length first to prevent index out of bounds
+	if len(buf) < 6 {
+		return false
+	}
+
 	// Check preamble and last byte
-	if buf[0] != 0xf2 || buf[1] != 0xf2 || buf[len(buf)-1] != 0x7e || len(buf) < 6 {
+	if buf[0] != 0xf2 || buf[1] != 0xf2 || buf[len(buf)-1] != 0x7e {
 		return false
 	}
 

@@ -10,22 +10,21 @@ import (
 // Contains functions for height movement only.
 
 // Moves the desk up
-func (j *Jiecang) Up() {
-	j.sendCommand(commands["up"])
+func (j *Jiecang) Up() error {
+	return j.sendCommand(commands["up"])
 }
 
 // Moves the desk down
-func (j *Jiecang) Down() {
-	j.sendCommand(commands["down"])
+func (j *Jiecang) Down() error {
+	return j.sendCommand(commands["down"])
 }
 
 // Moves the desk to the designated height. Height should be within the limits
 // of the desk. The operation can be cancelled via the provided context.
-func (j *Jiecang) GoToHeight(ctx context.Context, height uint8) {
+func (j *Jiecang) GoToHeight(ctx context.Context, height uint8) error {
 	//Ensure that height is within low and high limits of the desk.
 	if height > j.HighestHeight || height < j.LowestHeight {
-		fmt.Printf("Height %d is out of range of the desk (Low: %d, High: %d)\n", height, j.LowestHeight, j.HighestHeight)
-		return
+		return fmt.Errorf("height %d is out of range (low: %d, high: %d)", height, j.LowestHeight, j.HighestHeight)
 	}
 	data0 := byte((int(height) * 10) / 256)
 	data1 := byte((int(height) * 10) % 256)
@@ -39,8 +38,6 @@ func (j *Jiecang) GoToHeight(ctx context.Context, height uint8) {
 		byte((int(0x1b) + int(0x02) + int(data0) + int(data1)) % 256),
 		0x7e,
 	}
-
-	j.sendCommand(command)
 
 	ticker := time.NewTicker(200 * time.Millisecond)
 	defer ticker.Stop()
@@ -57,18 +54,21 @@ func (j *Jiecang) GoToHeight(ctx context.Context, height uint8) {
 		select {
 		case <-ctx.Done():
 			// Context cancelled, send stop command and return
-			j.sendCommand(commands["stop"])
+			if err := j.sendCommand(commands["stop"]); err != nil {
+				return fmt.Errorf("failed to send stop command: %w", err)
+			}
 			fmt.Printf("Operation cancelled at height %d cm\n", currentHeight)
-			return
+			return nil
 		case <-ticker.C:
-			j.sendCommand(command)
+			if err := j.sendCommand(command); err != nil {
+				return fmt.Errorf("failed to send goto command: %w", err)
+			}
 		}
 	}
-
-	j.sendCommand(commands["stop"])
+	return nil
 }
 
-func (j *Jiecang) FetchHeight() {
+func (j *Jiecang) FetchHeight() error {
 	//Implements fetch_height command
 
 	// Returns
@@ -83,12 +83,13 @@ func (j *Jiecang) FetchHeight() {
 		f2f2 28 02 0000 2a 7e
 
 	*/
-	j.sendCommand(commands["fetch_height"])
-	j.sendCommand(commands["fetch_height"])
-
+	if err := j.sendCommand(commands["fetch_height"]); err != nil {
+		return err
+	}
+	return j.sendCommand(commands["fetch_height"])
 }
 
-func (j *Jiecang) FetchHeightRange() {
+func (j *Jiecang) FetchHeightRange() error {
 	// Implements fetch_height_range command
 
 	//Retuns
@@ -96,9 +97,10 @@ func (j *Jiecang) FetchHeightRange() {
 			  f2f2 07 04 04f8 026c 75 7e
 		            LEN HGH LOW  CSUM
 	*/
-	j.sendCommand(commands["fetch_height_range"])
-	j.sendCommand(commands["fetch_height_range"])
-
+	if err := j.sendCommand(commands["fetch_height_range"]); err != nil {
+		return err
+	}
+	return j.sendCommand(commands["fetch_height_range"])
 }
 
 func readHeight(buf []byte) uint8 {

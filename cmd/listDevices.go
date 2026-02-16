@@ -30,15 +30,15 @@ var listDevicesCmd = &cobra.Command{
 
 		err := adapter.Enable()
 		if err != nil {
-			fmt.Println("Could not enable Bluetooth adapter.", err)
-			os.Exit(-1)
+			fmt.Fprintf(os.Stderr, "Could not enable Bluetooth adapter: %v\n", err)
+			os.Exit(1)
 		}
 
 		results = make(map[string]bluetooth.ScanResult)
 		err = adapter.Scan(onScan)
 		if err != nil {
-			fmt.Println("Could not scan available devices.", err)
-			os.Exit(-1)
+			fmt.Fprintf(os.Stderr, "Could not scan available devices: %v\n", err)
+			os.Exit(1)
 		}
 	},
 }

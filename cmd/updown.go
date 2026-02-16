@@ -24,22 +24,27 @@ var upCmd = &cobra.Command{
 		var mac bluetooth.MAC
 		mac, err := bluetooth.ParseMAC(address)
 		if err != nil {
-			fmt.Printf("Invalid MAC address [%s]\n", address)
+			fmt.Fprintf(os.Stderr, "Invalid MAC address [%s]: %v\n", address, err)
 			os.Exit(1)
 		}
 
 		//Initialize device
-		j = jiecang.Init(adapter, bluetooth.Address{MACAddress: bluetooth.MACAddress{MAC: mac}})
-
+		j, err = jiecang.Init(adapter, bluetooth.Address{MACAddress: bluetooth.MACAddress{MAC: mac}})
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to initialize device: %v\n", err)
+			os.Exit(1)
+		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		j.Up()
+		if err := j.Up(); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to move desk up: %v\n", err)
+			os.Exit(1)
+		}
 	},
 	PostRun: func(cmd *cobra.Command, args []string) {
-		err := j.Disconnect()
-		if err != nil {
-			fmt.Printf("Error when disconnecting: %v\n", err)
-			return
+		if err := j.Disconnect(); err != nil {
+			fmt.Fprintf(os.Stderr, "Error when disconnecting: %v\n", err)
+			os.Exit(1)
 		}
 	},
 }
@@ -56,22 +61,27 @@ var downCmd = &cobra.Command{
 		var mac bluetooth.MAC
 		mac, err := bluetooth.ParseMAC(address)
 		if err != nil {
-			fmt.Printf("Invalid MAC address [%s]\n", address)
+			fmt.Fprintf(os.Stderr, "Invalid MAC address [%s]: %v\n", address, err)
 			os.Exit(1)
 		}
 
 		//Initialize device
-		j = jiecang.Init(adapter, bluetooth.Address{MACAddress: bluetooth.MACAddress{MAC: mac}})
-
+		j, err = jiecang.Init(adapter, bluetooth.Address{MACAddress: bluetooth.MACAddress{MAC: mac}})
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to initialize device: %v\n", err)
+			os.Exit(1)
+		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		j.Down()
+		if err := j.Down(); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to move desk down: %v\n", err)
+			os.Exit(1)
+		}
 	},
 	PostRun: func(cmd *cobra.Command, args []string) {
-		err := j.Disconnect()
-		if err != nil {
-			fmt.Printf("Error when disconnecting: %v\n", err)
-			return
+		if err := j.Disconnect(); err != nil {
+			fmt.Fprintf(os.Stderr, "Error when disconnecting: %v\n", err)
+			os.Exit(1)
 		}
 	},
 }
