@@ -26,10 +26,9 @@ Moves the desk up/down, manages memory presets`,
 		adapter = bluetooth.DefaultAdapter
 		err := adapter.Enable()
 		if err != nil {
-			fmt.Printf("Could not enable Bluetooth adapter: %v\n", err)
-			return
+			fmt.Fprintf(os.Stderr, "Could not enable Bluetooth adapter: %v\n", err)
+			os.Exit(1)
 		}
-
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		_ = cmd.Help()

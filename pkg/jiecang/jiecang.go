@@ -54,13 +54,13 @@ type Jiecang struct {
 	AntiCollisionSensitivity uint8 //TODO: Use iota
 }
 
-func Init(a *bluetooth.Adapter, addr bluetooth.Address) *Jiecang {
+func Init(a *bluetooth.Adapter, addr bluetooth.Address) (*Jiecang, error) {
 	j := new(Jiecang)
 
 	// Connect to BLE Device
 	d, err := a.Connect(addr, bluetooth.ConnectionParams{})
 	if err != nil {
-		log.Println("Error connecting to device:", err.Error())
+		return nil, fmt.Errorf("failed to connect to device: %w", err)
 	}
 
 	// Scan Services and characteristics
@@ -69,13 +69,17 @@ func Init(a *bluetooth.Adapter, addr bluetooth.Address) *Jiecang {
 	})
 
 	if err != nil {
-		log.Println("error getting services:", err.Error())
+		return nil, fmt.Errorf("failed to discover services: %w", err)
 	}
+
+	serviceFound := false
 	for _, service := range services {
 		if service.UUID() != bluetooth.New16BitUUID(BLEDeviceId) {
 			// Wrong service
 			continue
 		}
+		serviceFound = true
+
 		// Found the correct service
 		// Get a list of characteristics below the service
 		characteristics, err := service.DiscoverCharacteristics([]bluetooth.UUID{
@@ -83,39 +87,55 @@ func Init(a *bluetooth.Adapter, addr bluetooth.Address) *Jiecang {
 			bluetooth.New16BitUUID(BLECharDataOutId),
 		})
 		if err != nil {
-			log.Println("error getting characteristics:", err.Error())
+			return nil, fmt.Errorf("failed to discover characteristics: %w", err)
+		}
+
+		if len(characteristics) < 2 {
+			return nil, fmt.Errorf("expected 2 characteristics, got %d", len(characteristics))
 		}
 
 		j.dataIn = characteristics[0]
 		j.dataOut = characteristics[1]
 		// Enable notifications on dataOut
 		err = j.dataOut.EnableNotifications(j.characteristicReceiver)
-		// If error, bail out
 		if err != nil {
-			log.Println("error enabling notifications:", err.Error())
+			return nil, fmt.Errorf("failed to enable notifications: %w", err)
 		}
+	}
+
+	if !serviceFound {
+		return nil, fmt.Errorf("BLE service %04x not found", BLEDeviceId)
 	}
 
 	// Read desk current height
 	result := []byte{}
 	_, err = j.dataOut.Read(result)
 	if err != nil {
-		log.Println("error reading from DataIn characteristic", err.Error())
+		return nil, fmt.Errorf("failed to read initial height: %w", err)
 	}
 	log.Printf("Initial height: %d mm", j.currentHeight)
 
 	//Fetch height memory presets
 	j.presets = make(map[string]uint8)
-	j.FetchHeight()
+	if err := j.FetchHeight(); err != nil {
+		return nil, fmt.Errorf("failed to fetch height: %w", err)
+	}
 
 	// Fetch desk low and high height
-	j.FetchHeightRange()
+	if err := j.FetchHeightRange(); err != nil {
+		return nil, fmt.Errorf("failed to fetch height range: %w", err)
+	}
 
-	j.FetchStandTime()
-	j.FetchAllTime()
+	if err := j.FetchStandTime(); err != nil {
+		return nil, fmt.Errorf("failed to fetch stand time: %w", err)
+	}
+
+	if err := j.FetchAllTime(); err != nil {
+		return nil, fmt.Errorf("failed to fetch all time: %w", err)
+	}
 
 	j.device = d
-	return j
+	return j, nil
 }
 
 func (j *Jiecang) Disconnect() error {
@@ -123,20 +143,28 @@ func (j *Jiecang) Disconnect() error {
 }
 
 // simple wrapper to bluetooth.WriteWithoutResponse
-func (j *Jiecang) sendCommand(buf []byte) {
-	_, _ = j.dataIn.WriteWithoutResponse(buf)
+func (j *Jiecang) sendCommand(buf []byte) error {
+	_, err := j.dataIn.WriteWithoutResponse(buf)
+	if err != nil {
+		return fmt.Errorf("failed to send command: %w", err)
+	}
+	return nil
 }
 
-func (j *Jiecang) FetchStandTime() {
+func (j *Jiecang) FetchStandTime() error {
 	// Implements fetch_stand_time command
-	j.sendCommand(commands["fetch_stand_time"])
-	j.sendCommand(commands["fetch_stand_time"])
+	if err := j.sendCommand(commands["fetch_stand_time"]); err != nil {
+		return err
+	}
+	return j.sendCommand(commands["fetch_stand_time"])
 }
 
-func (j *Jiecang) FetchAllTime() {
+func (j *Jiecang) FetchAllTime() error {
 	// Implements fetch_all_time command
-	j.sendCommand(commands["fetch_all_time"])
-	j.sendCommand(commands["fetch_all_time"])
+	if err := j.sendCommand(commands["fetch_all_time"]); err != nil {
+		return err
+	}
+	return j.sendCommand(commands["fetch_all_time"])
 }
 
 func (j *Jiecang) characteristicReceiver(buf []byte) {
@@ -150,6 +178,11 @@ func (j *Jiecang) characteristicReceiver(buf []byte) {
 	// Buffer might contain multiple messages
 	msg := bytes.SplitAfter(buf, []byte{0x7e})
 	for i := 0; i < len(msg)-1; i++ {
+		// Check that message has minimum required length before validation
+		if len(msg[i]) < 3 {
+			continue
+		}
+
 		if isValidData(msg[i]) {
 			switch msg[i][2] {
 			case 0x01: // Data contains height measurements

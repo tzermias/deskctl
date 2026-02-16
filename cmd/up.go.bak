@@ -1,0 +1,31 @@
+/*
+Copyright © 2025 Aris Tzermias
+*/
+package cmd
+
+import (
+	"fmt"
+
+	"github.com/spf13/cobra"
+)
+
+var upCmd = &cobra.Command{
+	Use:   "up",
+	Short: "Lift the desk up",
+	Long:  `Lifts the desk up.`,
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Println("up called")
+	},
+}
+
+var address string
+var height int
+
+func init() {
+	rootCmd.AddCommand(upCmd)
+
+	//
+	upCmd.Flags().StringVarP(&address, "address", "a", "", "Device address")
+	upCmd.MarkFlagRequired("address")
+	upCmd.Flags().IntVarP(&height, "until", "u", 0, "Lift the height until defined height in cm is reached")
+}

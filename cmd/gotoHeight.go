@@ -27,22 +27,26 @@ var gotoHeightCmd = &cobra.Command{
 	Args: cobra.ExactArgs(1),
 	PreRun: func(cmd *cobra.Command, args []string) {
 		var err error
-		// Validate that arugment is an integer between 1 and 3
+		// Validate that argument is an integer
 		height, err = strconv.Atoi(args[0])
 		if err != nil {
+			fmt.Fprintf(os.Stderr, "Invalid height value [%s]: %v\n", args[0], err)
 			os.Exit(1)
 		}
 		// Validate MAC address
 		var mac bluetooth.MAC
 		mac, err = bluetooth.ParseMAC(address)
 		if err != nil {
-			fmt.Printf("Invalid MAC address [%s]\n", address)
+			fmt.Fprintf(os.Stderr, "Invalid MAC address [%s]: %v\n", address, err)
 			os.Exit(1)
 		}
 
 		//Initialize device
-		j = jiecang.Init(adapter, bluetooth.Address{MACAddress: bluetooth.MACAddress{MAC: mac}})
-
+		j, err = jiecang.Init(adapter, bluetooth.Address{MACAddress: bluetooth.MACAddress{MAC: mac}})
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to initialize device: %v\n", err)
+			os.Exit(1)
+		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx := cmd.Context()
@@ -51,13 +55,15 @@ var gotoHeightCmd = &cobra.Command{
 		opCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
 		defer cancel()
 
-		j.GoToHeight(opCtx, uint8(height))
+		if err := j.GoToHeight(opCtx, uint8(height)); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to go to height: %v\n", err)
+			os.Exit(1)
+		}
 	},
 	PostRun: func(cmd *cobra.Command, args []string) {
-		err := j.Disconnect()
-		if err != nil {
-			fmt.Printf("Error when disconnecting: %v\n", err)
-			return
+		if err := j.Disconnect(); err != nil {
+			fmt.Fprintf(os.Stderr, "Error when disconnecting: %v\n", err)
+			os.Exit(1)
 		}
 	},
 }
