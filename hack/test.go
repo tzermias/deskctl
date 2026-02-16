@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"time"
 
@@ -32,11 +33,15 @@ func onScan(adapter *bluetooth.Adapter, device bluetooth.ScanResult) {
 		log.Println("Found Lierda device:", device.Address.String(), device.RSSI, device.LocalName())
 		j := jiecang.Init(adapter, device.Address)
 
+		// Create context with timeout
+		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+		defer cancel()
+
 		// Go to Memory1
-		j.GoToMemory1()
+		j.GoToMemory1(ctx)
 		time.Sleep(5 * time.Second)
 		// Go to Memory2
-		j.GoToMemory2()
+		j.GoToMemory2(ctx)
 		time.Sleep(200 * time.Millisecond)
 
 		log.Println("Disconnecting...")
