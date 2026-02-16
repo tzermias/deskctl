@@ -34,7 +34,6 @@ func (j *Jiecang) GoToMemory1(ctx context.Context) error {
 			fmt.Printf("Operation cancelled at height %d cm\n", currentHeight)
 			return nil
 		case <-ticker.C:
-			j.sendCommand(commands["goto_memory1"])
 			if err := j.sendCommand(commands["goto_memory1"]); err != nil {
 				return fmt.Errorf("failed to send goto memory1 command: %w", err)
 			}

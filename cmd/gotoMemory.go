@@ -54,16 +54,21 @@ var gotoMemoryCmd = &cobra.Command{
 		opCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
 		defer cancel()
 
+		var err error
 		switch memory_num {
 		case 1:
-			j.GoToMemory1(opCtx)
+			err = j.GoToMemory1(opCtx)
 		case 2:
-			j.GoToMemory2(opCtx)
+			err = j.GoToMemory2(opCtx)
 		case 3:
-			j.GoToMemory3(opCtx)
+			err = j.GoToMemory3(opCtx)
 		default:
 			// We should never reach this state as we validate this argument with PreRun hook.
 			fmt.Fprintf(os.Stderr, "Memory %d is not within boundaries (1-3)\n", memory_num)
+			os.Exit(1)
+		}
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to go to memory %d: %v\n", memory_num, err)
 			os.Exit(1)
 		}
 	},

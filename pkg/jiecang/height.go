@@ -39,8 +39,6 @@ func (j *Jiecang) GoToHeight(ctx context.Context, height uint8) error {
 		0x7e,
 	}
 
-	j.sendCommand(command)
-
 	ticker := time.NewTicker(200 * time.Millisecond)
 	defer ticker.Stop()
 
@@ -63,7 +61,7 @@ func (j *Jiecang) GoToHeight(ctx context.Context, height uint8) error {
 			return nil
 		case <-ticker.C:
 			if err := j.sendCommand(command); err != nil {
-				return fmt.Errorf("failed to send initial goto command: %w", err)
+				return fmt.Errorf("failed to send goto command: %w", err)
 			}
 		}
 	}
