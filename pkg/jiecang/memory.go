@@ -1,37 +1,95 @@
 package jiecang
 
 import (
+	"context"
+	"fmt"
 	"log"
 	"math"
 	"time"
 )
 
 // GoToMemoryX functions
-func (j *Jiecang) GoToMemory1() {
-	// Send the connand twice the first time
+func (j *Jiecang) GoToMemory1(ctx context.Context) {
+	// Send the command twice the first time
 	j.sendCommand(commands["goto_memory1"])
-	for (j.currentHeight - j.presets["memory1"]) != 0 {
-		j.sendCommand(commands["goto_memory1"])
 
-		time.Sleep(200 * time.Millisecond)
+	ticker := time.NewTicker(200 * time.Millisecond)
+	defer ticker.Stop()
+
+	for {
+		j.mu.RLock()
+		currentHeight := j.currentHeight
+		targetHeight := j.presets["memory1"]
+		j.mu.RUnlock()
+
+		if currentHeight == targetHeight {
+			break
+		}
+
+		select {
+		case <-ctx.Done():
+			// Context cancelled, return
+			fmt.Printf("Operation cancelled at height %d cm\n", currentHeight)
+			return
+		case <-ticker.C:
+			j.sendCommand(commands["goto_memory1"])
+		}
 	}
 }
 
-func (j *Jiecang) GoToMemory2() {
-	// Send the connand twice the first time
+func (j *Jiecang) GoToMemory2(ctx context.Context) {
+	// Send the command twice the first time
 	j.sendCommand(commands["goto_memory2"])
-	for (j.currentHeight - j.presets["memory2"]) != 0 {
-		j.sendCommand(commands["goto_memory2"])
-		time.Sleep(200 * time.Millisecond)
+
+	ticker := time.NewTicker(200 * time.Millisecond)
+	defer ticker.Stop()
+
+	for {
+		j.mu.RLock()
+		currentHeight := j.currentHeight
+		targetHeight := j.presets["memory2"]
+		j.mu.RUnlock()
+
+		if currentHeight == targetHeight {
+			break
+		}
+
+		select {
+		case <-ctx.Done():
+			// Context cancelled, return
+			fmt.Printf("Operation cancelled at height %d cm\n", currentHeight)
+			return
+		case <-ticker.C:
+			j.sendCommand(commands["goto_memory2"])
+		}
 	}
 }
 
-func (j *Jiecang) GoToMemory3() {
-	// Send the connand twice the first time
+func (j *Jiecang) GoToMemory3(ctx context.Context) {
+	// Send the command twice the first time
 	j.sendCommand(commands["goto_memory3"])
-	for (j.currentHeight - j.presets["memory3"]) != 0 {
-		j.sendCommand(commands["goto_memory3"])
-		time.Sleep(200 * time.Millisecond)
+
+	ticker := time.NewTicker(200 * time.Millisecond)
+	defer ticker.Stop()
+
+	for {
+		j.mu.RLock()
+		currentHeight := j.currentHeight
+		targetHeight := j.presets["memory3"]
+		j.mu.RUnlock()
+
+		if currentHeight == targetHeight {
+			break
+		}
+
+		select {
+		case <-ctx.Done():
+			// Context cancelled, return
+			fmt.Printf("Operation cancelled at height %d cm\n", currentHeight)
+			return
+		case <-ticker.C:
+			j.sendCommand(commands["goto_memory3"])
+		}
 	}
 }
 

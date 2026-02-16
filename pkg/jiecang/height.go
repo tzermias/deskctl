@@ -1,6 +1,7 @@
 package jiecang
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"time"
@@ -19,8 +20,8 @@ func (j *Jiecang) Down() {
 }
 
 // Moves the desk to the designated height. Height should be within the limits
-// of the desk.
-func (j *Jiecang) GoToHeight(height uint8) {
+// of the desk. The operation can be cancelled via the provided context.
+func (j *Jiecang) GoToHeight(ctx context.Context, height uint8) {
 	//Ensure that height is within low and high limits of the desk.
 	if height > j.HighestHeight || height < j.LowestHeight {
 		fmt.Printf("Height %d is out of range of the desk (Low: %d, High: %d)\n", height, j.LowestHeight, j.HighestHeight)
@@ -40,10 +41,30 @@ func (j *Jiecang) GoToHeight(height uint8) {
 	}
 
 	j.sendCommand(command)
-	for (j.currentHeight - height) != 0 {
-		j.sendCommand(command)
-		time.Sleep(200 * time.Millisecond)
+
+	ticker := time.NewTicker(200 * time.Millisecond)
+	defer ticker.Stop()
+
+	for {
+		j.mu.RLock()
+		currentHeight := j.currentHeight
+		j.mu.RUnlock()
+
+		if currentHeight == height {
+			break
+		}
+
+		select {
+		case <-ctx.Done():
+			// Context cancelled, send stop command and return
+			j.sendCommand(commands["stop"])
+			fmt.Printf("Operation cancelled at height %d cm\n", currentHeight)
+			return
+		case <-ticker.C:
+			j.sendCommand(command)
+		}
 	}
+
 	j.sendCommand(commands["stop"])
 }
 

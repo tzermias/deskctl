@@ -4,9 +4,11 @@ Copyright © 2025 Aris Tzermias
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/tzermias/deskctl/pkg/jiecang"
@@ -43,13 +45,19 @@ var gotoMemoryCmd = &cobra.Command{
 
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		ctx := cmd.Context()
+
+		// Add timeout for operation (60 seconds)
+		opCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
+		defer cancel()
+
 		switch memory_num {
 		case 1:
-			j.GoToMemory1()
+			j.GoToMemory1(opCtx)
 		case 2:
-			j.GoToMemory2()
+			j.GoToMemory2(opCtx)
 		case 3:
-			j.GoToMemory3()
+			j.GoToMemory3(opCtx)
 		default:
 			// We should never reach this state as we validate this argument with PreRun hook.
 			fmt.Printf("Memory %d is not within boundaries (1-3)", memory_num)

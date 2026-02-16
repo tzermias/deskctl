@@ -4,6 +4,7 @@ Copyright © 2025 Aris Tzermias
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -38,8 +39,8 @@ Moves the desk up/down, manages memory presets`,
 	},
 }
 
-func Execute() {
-	err := rootCmd.Execute()
+func Execute(ctx context.Context) {
+	err := rootCmd.ExecuteContext(ctx)
 	if err != nil {
 		os.Exit(1)
 	}
