@@ -17,18 +17,18 @@ func isValidData(buf []byte) bool {
 	}
 
 	// Calculate checksum and verify if its correct
-	data_type := int(buf[2])
-	data_len := int(buf[3])
+	dataType := int(buf[2])
+	dataLen := int(buf[3])
 	// Length of the data should not exceed the length of the payload.
 	// Last two bytes should always be the checksum and EoM (Ox7e)
-	if data_len+3 >= len(buf)-2 {
+	if dataLen+3 >= len(buf)-2 {
 		return false
 	}
-	received_checksum := int(buf[len(buf)-2])
+	receivedChecksum := int(buf[len(buf)-2])
 
-	calc_checksum := data_type + data_len
-	for i := 0; i < data_len; i++ {
-		calc_checksum += int(buf[4+i])
+	calcChecksum := dataType + dataLen
+	for i := 0; i < dataLen; i++ {
+		calcChecksum += int(buf[4+i])
 	}
-	return (calc_checksum % 256) == received_checksum
+	return (calcChecksum % 256) == receivedChecksum
 }

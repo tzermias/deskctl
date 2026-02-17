@@ -15,7 +15,7 @@ import (
 	"tinygo.org/x/bluetooth"
 )
 
-var memory_num int
+var memoryNum int
 var j *jiecang.Jiecang
 
 var gotoMemoryCmd = &cobra.Command{
@@ -26,9 +26,9 @@ var gotoMemoryCmd = &cobra.Command{
 	PreRun: func(cmd *cobra.Command, args []string) {
 		var err error
 		// Validate that argument is an integer between 1 and 3
-		memory_num, err = strconv.Atoi(args[0])
-		if err != nil || memory_num < 1 || memory_num > 3 {
-			fmt.Fprintf(os.Stderr, "Memory number is not within boundaries (1-3): %d\n", memory_num)
+		memoryNum, err = strconv.Atoi(args[0])
+		if err != nil || memoryNum < 1 || memoryNum > 3 {
+			fmt.Fprintf(os.Stderr, "Memory number is not within boundaries (1-3): %d\n", memoryNum)
 			os.Exit(1)
 		}
 
@@ -55,7 +55,7 @@ var gotoMemoryCmd = &cobra.Command{
 		defer cancel()
 
 		var err error
-		switch memory_num {
+		switch memoryNum {
 		case 1:
 			err = j.GoToMemory1(opCtx)
 		case 2:
@@ -64,11 +64,11 @@ var gotoMemoryCmd = &cobra.Command{
 			err = j.GoToMemory3(opCtx)
 		default:
 			// We should never reach this state as we validate this argument with PreRun hook.
-			fmt.Fprintf(os.Stderr, "Memory %d is not within boundaries (1-3)\n", memory_num)
+			fmt.Fprintf(os.Stderr, "Memory %d is not within boundaries (1-3)\n", memoryNum)
 			os.Exit(1)
 		}
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to go to memory %d: %v\n", memory_num, err)
+			fmt.Fprintf(os.Stderr, "Failed to go to memory %d: %v\n", memoryNum, err)
 			os.Exit(1)
 		}
 	},

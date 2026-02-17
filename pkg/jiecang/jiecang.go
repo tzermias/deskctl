@@ -197,9 +197,9 @@ func (j *Jiecang) characteristicReceiver(buf []byte) {
 				j.mu.Unlock()
 			case 0x25, 0x26, 0x27, 0x28: // Data contains height for each memory preset (1-4). Memory 4 is currently 0
 				memory := int(msg[i][2] % 0x24)
-				memory_name := fmt.Sprintf("memory%d", memory)
+				memoryName := fmt.Sprintf("memory%d", memory)
 				j.mu.Lock()
-				j.presets[memory_name] = readMemoryPreset(msg[i])
+				j.presets[memoryName] = readMemoryPreset(msg[i])
 				j.mu.Unlock()
 			case 0x0e: // Data contains units setting
 				fmt.Printf("Unit settings: %x\n", msg[i][3])
