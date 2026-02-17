@@ -15,7 +15,7 @@ func (j *Jiecang) GoToMemory1(ctx context.Context) error {
 		return fmt.Errorf("failed to send goto memory1 command: %w", err)
 	}
 
-	ticker := time.NewTicker(200 * time.Millisecond)
+	ticker := time.NewTicker(PollingInterval)
 	defer ticker.Stop()
 
 	for {
@@ -48,7 +48,7 @@ func (j *Jiecang) GoToMemory2(ctx context.Context) error {
 		return fmt.Errorf("failed to send goto memory2 command: %w", err)
 	}
 
-	ticker := time.NewTicker(200 * time.Millisecond)
+	ticker := time.NewTicker(PollingInterval)
 	defer ticker.Stop()
 
 	for {
@@ -81,7 +81,7 @@ func (j *Jiecang) GoToMemory3(ctx context.Context) error {
 		return fmt.Errorf("failed to send goto memory3 command: %w", err)
 	}
 
-	ticker := time.NewTicker(200 * time.Millisecond)
+	ticker := time.NewTicker(PollingInterval)
 	defer ticker.Stop()
 
 	for {
@@ -117,7 +117,7 @@ func (j *Jiecang) SaveMemory1() error {
 	}
 
 	log.Printf("Height: %d cm", j.currentHeight)
-	time.Sleep(200 * time.Millisecond)
+	time.Sleep(SaveMemoryDelay)
 	return nil
 }
 
@@ -128,7 +128,7 @@ func (j *Jiecang) SaveMemory2() error {
 	}
 
 	log.Printf("Height: %d cm", j.currentHeight)
-	time.Sleep(200 * time.Millisecond)
+	time.Sleep(SaveMemoryDelay)
 	return nil
 }
 
@@ -139,7 +139,7 @@ func (j *Jiecang) SaveMemory3() error {
 	}
 
 	log.Printf("Height: %d cm", j.currentHeight)
-	time.Sleep(200 * time.Millisecond)
+	time.Sleep(SaveMemoryDelay)
 	return nil
 }
 
@@ -149,7 +149,7 @@ func readMemoryPreset(buf []byte) uint8 {
 	if buf[3] == 0x02 {
 		preset := int(buf[4])*256 + int(buf[5])
 		// Hack to round the value
-		return uint8(math.Round(float64(preset / 10.0)))
+		return uint8(math.Round(float64(preset / HeightConversionFactor)))
 	}
 	return 0
 }

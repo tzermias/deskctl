@@ -26,20 +26,20 @@ func (j *Jiecang) GoToHeight(ctx context.Context, height uint8) error {
 	if height > j.HighestHeight || height < j.LowestHeight {
 		return fmt.Errorf("height %d is out of range (low: %d, high: %d)", height, j.LowestHeight, j.HighestHeight)
 	}
-	data0 := byte((int(height) * 10) / 256)
-	data1 := byte((int(height) * 10) % 256)
+	data0 := byte((int(height) * HeightConversionFactor) / 256)
+	data1 := byte((int(height) * HeightConversionFactor) % 256)
 	command := []byte{
-		0xf1,
-		0xf1,
+		ProtocolPreamble1,
+		ProtocolPreamble2,
 		0x1b,
 		0x02,
 		data0,
 		data1,
 		byte((int(0x1b) + int(0x02) + int(data0) + int(data1)) % 256),
-		0x7e,
+		ProtocolTerminator,
 	}
 
-	ticker := time.NewTicker(200 * time.Millisecond)
+	ticker := time.NewTicker(PollingInterval)
 	defer ticker.Stop()
 
 	for {
@@ -107,7 +107,7 @@ func readHeight(buf []byte) uint8 {
 	if buf[3] == 0x03 {
 		height := int(buf[4])*256 + int(buf[5])
 		// Hack to round the value
-		return uint8(math.Round(float64(height / 10.0)))
+		return uint8(math.Round(float64(height / HeightConversionFactor)))
 	}
 	return 0
 }
@@ -117,8 +117,8 @@ func readHeightRange(buf []byte) (uint8, uint8) {
 	if buf[3] == 0x04 {
 		highestHeight := int(buf[4])*256 + int(buf[5])
 		lowestHeight := int(buf[6])*256 + int(buf[7])
-		return uint8(math.Round(float64(highestHeight / 10.0))),
-			uint8(math.Round(float64(lowestHeight / 10.0)))
+		return uint8(math.Round(float64(highestHeight / HeightConversionFactor))),
+			uint8(math.Round(float64(lowestHeight / HeightConversionFactor)))
 	}
 	return 0, 0
 }
