@@ -12,7 +12,7 @@ func isValidData(buf []byte) bool {
 	}
 
 	// Check preamble and last byte
-	if buf[0] != 0xf2 || buf[1] != 0xf2 || buf[len(buf)-1] != 0x7e {
+	if buf[0] != ProtocolResponse1 || buf[1] != ProtocolResponse2 || buf[len(buf)-1] != ProtocolTerminator {
 		return false
 	}
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"sync"
+	"time"
 
 	"tinygo.org/x/bluetooth"
 )
@@ -26,9 +27,29 @@ var commands = map[string][]byte{
 }
 
 const (
+	// BLE service and characteristic IDs
 	BLEDeviceId      = 0xFE60
 	BLECharDataInId  = 0xFE61
 	BLECharDataOutId = 0xFE62
+
+	// Protocol constants
+	ProtocolPreamble1  = 0xf1 // Command message preamble byte 1
+	ProtocolPreamble2  = 0xf1 // Command message preamble byte 2
+	ProtocolResponse1  = 0xf2 // Response message preamble byte 1
+	ProtocolResponse2  = 0xf2 // Response message preamble byte 2
+	ProtocolTerminator = 0x7e // Message terminator
+
+	// Conversion factors
+	HeightConversionFactor = 10 // Multiply height by 10 for protocol
+
+	// Memory preset constants
+	MemoryPresetModulo = 0x24 // Modulo for memory preset calculation
+
+	// Timing constants
+	PollingInterval     = 200 * time.Millisecond // Polling interval for height operations
+	SaveMemoryDelay     = 200 * time.Millisecond // Delay after saving memory preset
+	OperationTimeout    = 60 * time.Second       // Default timeout for operations
+	InitializationDelay = 200 * time.Millisecond // Delay during initialization
 )
 
 type Jiecang struct {
@@ -196,7 +217,7 @@ func (j *Jiecang) characteristicReceiver(buf []byte) {
 				j.HighestHeight, j.LowestHeight = readHeightRange(msg[i])
 				j.mu.Unlock()
 			case 0x25, 0x26, 0x27, 0x28: // Data contains height for each memory preset (1-4). Memory 4 is currently 0
-				memory := int(msg[i][2] % 0x24)
+				memory := int(msg[i][2] % MemoryPresetModulo)
 				memoryName := fmt.Sprintf("memory%d", memory)
 				j.mu.Lock()
 				j.presets[memoryName] = readMemoryPreset(msg[i])
