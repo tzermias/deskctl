@@ -1,2 +1,8 @@
 # Added by goreleaser init:
 dist/
+
+# Build artifacts
+bin/
+
+# Claude Code artifacts
+.claude/
