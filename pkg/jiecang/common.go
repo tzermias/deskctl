@@ -3,8 +3,21 @@ package jiecang
 // Common functions used to decode messages from/to the controller
 // checking validity etc.
 
-// Function that checks whether data received from DataIn are valid.
-// They should start with "f2f2", end with "7e" and te previous to last byte (which is a checksum) should not fail.
+// isValidData validates data received from the controller's DataOut characteristic.
+//
+// The Jiecang protocol uses the following message format:
+//   - Bytes 0-1: Preamble (0xf2, 0xf2)
+//   - Byte 2: Message type/command
+//   - Byte 3: Data length (number of data bytes)
+//   - Bytes 4..(4+dataLen-1): Data payload
+//   - Byte (len-2): Checksum (sum of type, length, and data bytes, mod 256)
+//   - Byte (len-1): Terminator (0x7e)
+//
+// Parameters:
+//   - buf: Raw response buffer from the controller
+//
+// Returns true if the message has valid preamble, terminator, and checksum;
+// false otherwise.
 func isValidData(buf []byte) bool {
 	// Check length first to prevent index out of bounds
 	if len(buf) < 6 {

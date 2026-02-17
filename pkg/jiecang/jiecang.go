@@ -1,3 +1,29 @@
+// Package jiecang provides control functionality for Jiecang standing desk controllers
+// via Bluetooth Low Energy (BLE) communication using the Lierda LSD4BT-E95ASTD001 module.
+//
+// The package implements the Jiecang UART protocol over BLE, supporting:
+//   - Height control (up/down, go to specific height)
+//   - Memory presets (save and recall positions)
+//   - Height range queries
+//   - Desk settings (memory mode, anti-collision sensitivity)
+//
+// Example usage:
+//
+//	ctx := context.Background()
+//	adapter := bluetooth.DefaultAdapter
+//	adapter.Enable()
+//
+//	address := bluetooth.MustParseMAC("AA:BB:CC:DD:EE:FF")
+//	desk, err := jiecang.Init(adapter, bluetooth.Address{MACAddress: bluetooth.MACAddress{MAC: address}})
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//	defer desk.Disconnect()
+//
+//	// Move desk to 100cm height with timeout
+//	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+//	defer cancel()
+//	desk.GoToHeight(ctx, 100)
 package jiecang
 
 import (
@@ -31,29 +57,61 @@ const (
 	BLECharDataOutId = 0xFE62
 )
 
+// Jiecang represents a connection to a Jiecang desk controller.
+// It manages BLE communication and maintains the current state of the desk.
+//
+// The struct uses a mutex to protect concurrent access to shared state,
+// allowing safe use from multiple goroutines. Height values are stored
+// in centimeters for convenience.
 type Jiecang struct {
-	device  bluetooth.Device
-	dataIn  bluetooth.DeviceCharacteristic
-	dataOut bluetooth.DeviceCharacteristic
+	device  bluetooth.Device               // BLE device connection
+	dataIn  bluetooth.DeviceCharacteristic // Write characteristic for sending commands
+	dataOut bluetooth.DeviceCharacteristic // Read characteristic for receiving responses
 
-	//currentHeight in cm
-	currentHeight uint8
-	mu            sync.RWMutex
+	currentHeight uint8        // Current height in centimeters
+	mu            sync.RWMutex // Protects concurrent access to shared state
 
-	//Memory presets (memory 1-4)
-	presets map[string]uint8
+	presets map[string]uint8 // Memory presets (memory1-4) in centimeters
 
-	//Highest and lowest height of desk
-	LowestHeight  uint8
+	// LowestHeight is the minimum height limit of the desk in centimeters.
+	// Set during initialization from the controller.
+	LowestHeight uint8
+
+	// HighestHeight is the maximum height limit of the desk in centimeters.
+	// Set during initialization from the controller.
 	HighestHeight uint8
 
-	//Desk settings
-	// Memory mode (One-touch mode vs constant touch)
+	// MemoryConstantTouchMode indicates if memory mode requires constant touch.
+	// false = one-touch mode, true = constant touch mode.
 	MemoryConstantTouchMode bool
-	// Anti-collision sensitivity (1 High, 2 Medium, 3 Low)
-	AntiCollisionSensitivity uint8 //TODO: Use iota
+
+	// AntiCollisionSensitivity indicates the anti-collision sensitivity level.
+	// Valid values: 1 = High, 2 = Medium, 3 = Low
+	AntiCollisionSensitivity uint8
 }
 
+// Init initializes a connection to a Jiecang desk controller via Bluetooth.
+//
+// The function performs the following steps:
+//  1. Connects to the BLE device at the specified address
+//  2. Discovers the Jiecang service (0xFE60)
+//  3. Discovers data input/output characteristics (0xFE61, 0xFE62)
+//  4. Enables notifications for receiving responses
+//  5. Queries the desk for current height, height range, and memory presets
+//
+// Returns an error if any step fails (connection, service discovery,
+// characteristic discovery, or initial queries).
+//
+// Example:
+//
+//	adapter := bluetooth.DefaultAdapter
+//	adapter.Enable()
+//	address := bluetooth.MustParseMAC("AA:BB:CC:DD:EE:FF")
+//	desk, err := jiecang.Init(adapter, bluetooth.Address{MACAddress: bluetooth.MACAddress{MAC: address}})
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//	defer desk.Disconnect()
 func Init(a *bluetooth.Adapter, addr bluetooth.Address) (*Jiecang, error) {
 	j := new(Jiecang)
 
@@ -138,6 +196,9 @@ func Init(a *bluetooth.Adapter, addr bluetooth.Address) (*Jiecang, error) {
 	return j, nil
 }
 
+// Disconnect closes the BLE connection to the desk controller.
+// Should be called when done using the controller to free resources.
+// Safe to call even if the connection is already closed.
 func (j *Jiecang) Disconnect() error {
 	return j.device.Disconnect()
 }
@@ -151,16 +212,20 @@ func (j *Jiecang) sendCommand(buf []byte) error {
 	return nil
 }
 
+// FetchStandTime requests the desk's standing time statistics from the controller.
+// The command is sent twice as required by the protocol for reliability.
+// Returns an error if the command transmission fails.
 func (j *Jiecang) FetchStandTime() error {
-	// Implements fetch_stand_time command
 	if err := j.sendCommand(commands["fetch_stand_time"]); err != nil {
 		return err
 	}
 	return j.sendCommand(commands["fetch_stand_time"])
 }
 
+// FetchAllTime requests the desk's total usage time statistics from the controller.
+// The command is sent twice as required by the protocol for reliability.
+// Returns an error if the command transmission fails.
 func (j *Jiecang) FetchAllTime() error {
-	// Implements fetch_all_time command
 	if err := j.sendCommand(commands["fetch_all_time"]); err != nil {
 		return err
 	}

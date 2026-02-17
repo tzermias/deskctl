@@ -7,20 +7,41 @@ import (
 	"time"
 )
 
-// Contains functions for height movement only.
+// This file contains functions for controlling desk height.
 
-// Moves the desk up
+// Up sends a command to move the desk upward by one increment.
+// Equivalent to pressing the up button on the desk control panel once.
+// Returns an error if the command transmission fails.
 func (j *Jiecang) Up() error {
 	return j.sendCommand(commands["up"])
 }
 
-// Moves the desk down
+// Down sends a command to move the desk downward by one increment.
+// Equivalent to pressing the down button on the desk control panel once.
+// Returns an error if the command transmission fails.
 func (j *Jiecang) Down() error {
 	return j.sendCommand(commands["down"])
 }
 
-// Moves the desk to the designated height. Height should be within the limits
-// of the desk. The operation can be cancelled via the provided context.
+// GoToHeight moves the desk to the specified height in centimeters.
+//
+// The function validates that the target height is within the desk's configured
+// limits (LowestHeight and HighestHeight), then sends movement commands and polls
+// the current height until the target is reached or the context is cancelled.
+//
+// Parameters:
+//   - ctx: Context for timeout and cancellation. The operation can be interrupted
+//     by cancelling the context (e.g., with Ctrl+C or timeout).
+//   - height: Target height in centimeters. Must be between LowestHeight and
+//     HighestHeight (typically 60-120cm).
+//
+// Returns an error if:
+//   - The target height is out of range
+//   - Command transmission fails
+//   - The context is cancelled (returns ctx.Err())
+//
+// The function polls the height every 200ms and sends a stop command when
+// the target is reached or the operation is cancelled.
 func (j *Jiecang) GoToHeight(ctx context.Context, height uint8) error {
 	//Ensure that height is within low and high limits of the desk.
 	if height > j.HighestHeight || height < j.LowestHeight {
@@ -68,41 +89,45 @@ func (j *Jiecang) GoToHeight(ctx context.Context, height uint8) error {
 	return nil
 }
 
+// FetchHeight requests the desk's saved memory preset heights from the controller.
+// The command is sent twice as required by the protocol for reliability.
+//
+// The response contains the height values for all memory presets (1-4).
+// The values are processed asynchronously by the characteristicReceiver callback
+// and stored in the presets map.
+//
+// Returns an error if the command transmission fails.
 func (j *Jiecang) FetchHeight() error {
-	//Implements fetch_height command
-
-	// Returns
-	/*
-		f2f2 25 02 044e 79 7e //044e =1100 in decimal. Memory 1
-		f2f2 25 02 044e 79 7e
-		f2f2 26 02 030c 37 7e //030c = 780 in dec. Memory 2
-		f2f2 26 02 030c 37 7e
-		f2f2 27 02 0372 9e 7e //0372 = 882 in dec. Memory 3
-		f2f2 27 02 0372 9e 7e
-		f2f2 28 02 0000 2a 7e // Memory 4?
-		f2f2 28 02 0000 2a 7e
-
-	*/
 	if err := j.sendCommand(commands["fetch_height"]); err != nil {
 		return err
 	}
 	return j.sendCommand(commands["fetch_height"])
 }
 
+// FetchHeightRange requests the desk's minimum and maximum height limits.
+// The command is sent twice as required by the protocol for reliability.
+//
+// The response contains the highest and lowest height values that the desk
+// can physically reach. The values are processed asynchronously by the
+// characteristicReceiver callback and stored in HighestHeight and LowestHeight.
+//
+// Returns an error if the command transmission fails.
 func (j *Jiecang) FetchHeightRange() error {
-	// Implements fetch_height_range command
-
-	//Retuns
-	/*
-			  f2f2 07 04 04f8 026c 75 7e
-		            LEN HGH LOW  CSUM
-	*/
 	if err := j.sendCommand(commands["fetch_height_range"]); err != nil {
 		return err
 	}
 	return j.sendCommand(commands["fetch_height_range"])
 }
 
+// readHeight decodes the current height value from the controller response.
+// The function extracts the height from bytes 4-5 of the response buffer and converts
+// it from millimeters (protocol format) to centimeters (application format).
+//
+// Parameters:
+//   - buf: Response buffer from the controller. Expected format:
+//     [0xf2, 0xf2, type, 0x03, highByte, lowByte, ..., checksum, 0x7e]
+//
+// Returns the current height in centimeters, or 0 if the response type is invalid.
 func readHeight(buf []byte) uint8 {
 	if buf[3] == 0x03 {
 		height := int(buf[4])*256 + int(buf[5])
@@ -112,7 +137,19 @@ func readHeight(buf []byte) uint8 {
 	return 0
 }
 
-// Handles the response of FetchHeightRange command from the controller
+// readHeightRange decodes the height range limits from the controller response.
+// This handles the response from the FetchHeightRange command, extracting both
+// the maximum and minimum height limits that the desk can physically reach.
+//
+// Parameters:
+//   - buf: Response buffer from the controller. Expected format:
+//     [0xf2, 0xf2, type, 0x04, highestHighByte, highestLowByte,
+//     lowestHighByte, lowestLowByte, ..., checksum, 0x7e]
+//
+// Returns:
+//   - highestHeight: Maximum reachable height in centimeters
+//   - lowestHeight: Minimum reachable height in centimeters
+//   - (0, 0) if the response type is invalid
 func readHeightRange(buf []byte) (uint8, uint8) {
 	if buf[3] == 0x04 {
 		highestHeight := int(buf[4])*256 + int(buf[5])
