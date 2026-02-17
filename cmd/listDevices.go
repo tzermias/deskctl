@@ -55,8 +55,8 @@ func onScan(adapter *bluetooth.Adapter, device bluetooth.ScanResult) {
 
 			//Print results
 			fmt.Printf("%-20s %-20s %-10s\n", "ADDRESS", "NAME", "RSSI")
-			for device_address, device := range results {
-				fmt.Printf("%-20s %-20s %-10d\n", device_address, device.LocalName(), device.RSSI)
+			for deviceAddr, device := range results {
+				fmt.Printf("%-20s %-20s %-10d\n", deviceAddr, device.LocalName(), device.RSSI)
 			}
 		} else {
 			mu.Lock()
