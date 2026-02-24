@@ -3,9 +3,10 @@ package jiecang
 import (
 	"context"
 	"fmt"
-	"log"
 	"math"
 	"time"
+
+	"github.com/tzermias/deskctl/pkg/logger"
 )
 
 // GoToMemory moves the desk to the specified memory preset (1-3).
@@ -127,7 +128,7 @@ func (j *Jiecang) SaveMemory(memoryNum int) error {
 		return fmt.Errorf("failed to save memory%d: %w", memoryNum, err)
 	}
 
-	log.Printf("Saved height %d cm to memory %d", j.currentHeight, memoryNum)
+	logger.Printf("Saved height %d cm to memory %d", j.currentHeight, memoryNum)
 	time.Sleep(200 * time.Millisecond)
 	return nil
 }
