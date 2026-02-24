@@ -69,6 +69,7 @@ func (j *Jiecang) GoToHeight(ctx context.Context, height uint8) error {
 		j.mu.RUnlock()
 
 		if currentHeight == height {
+			fmt.Printf("\rHeight: %d cm\n", currentHeight)
 			break
 		}
 
@@ -78,9 +79,10 @@ func (j *Jiecang) GoToHeight(ctx context.Context, height uint8) error {
 			if err := j.sendCommand(commands["stop"]); err != nil {
 				return fmt.Errorf("failed to send stop command: %w", err)
 			}
-			fmt.Printf("Operation cancelled at height %d cm\n", currentHeight)
+			fmt.Printf("\nOperation cancelled at height %d cm\n", currentHeight)
 			return nil
 		case <-ticker.C:
+			fmt.Printf("\rHeight: %d cm", currentHeight)
 			if err := j.sendCommand(command); err != nil {
 				return fmt.Errorf("failed to send goto command: %w", err)
 			}

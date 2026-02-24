@@ -51,15 +51,16 @@ func (j *Jiecang) GoToMemory(ctx context.Context, memoryNum int) error {
 		j.mu.RUnlock()
 
 		if currentHeight == targetHeight {
+			fmt.Printf("\rHeight: %d cm\n", currentHeight)
 			break
 		}
 
 		select {
 		case <-ctx.Done():
-			// Context cancelled, return
-			fmt.Printf("Operation cancelled at height %d cm\n", currentHeight)
+			fmt.Printf("\nOperation cancelled at height %d cm\n", currentHeight)
 			return nil
 		case <-ticker.C:
+			fmt.Printf("\rHeight: %d cm", currentHeight)
 			if err := j.sendCommand(commands[commandKey]); err != nil {
 				return fmt.Errorf("failed to send goto memory%d command: %w", memoryNum, err)
 			}
