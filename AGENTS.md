@@ -5,13 +5,17 @@ deskctl is a Go CLI (Cobra) for controlling Jiecang-controlled standing desks ov
 ## Commands
 
 ```bash
+make deps    # go mod download && go mod tidy
 make fmt     # gofmt -s -w .
 make vet     # go vet ./...
-make test    # go mod download/tidy, then go test -v ./...
+make test    # deps, then go test -v ./...
 make build   # fmt -> vet -> test -> goreleaser snapshot build into ./dist
+make clean   # go clean, then rm -rf dist/ bin/
 ```
 
 Code must pass `make fmt`, `make vet` and `make test` before every commit.
+`make test` needs network access for `make deps`. If you have no network,
+run `go test ./...` instead and say so in the commit or PR description.
 
 ## Hard rules
 
@@ -21,6 +25,7 @@ Code must pass `make fmt`, `make vet` and `make test` before every commit.
 
 Read the relevant file before working in that area:
 
+- [Project layout & dependencies](docs/agents/project-structure.md)
 - [Git workflow & commit messages](docs/agents/git-workflow.md)
 - [Go conventions (naming, errors, linting)](docs/agents/go-conventions.md)
 - [Testing patterns](docs/agents/testing.md)
