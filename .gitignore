@@ -6,3 +6,6 @@ bin/
 
 # Claude Code artifacts
 .claude/
+
+# Backup files
+*.bak

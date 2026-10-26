@@ -22,4 +22,5 @@
   (message parsing and validation in `pkg/jiecang`) with raw byte slices.
   See `pkg/jiecang/common_test.go` for examples.
 - `make test` runs `go mod download` and `go mod tidy` first, so it needs
-  network access. Use `go test ./...` to run tests offline.
+  network access. Offline, `go test ./...` is an accepted substitute (see
+  [AGENTS.md](../../AGENTS.md#commands)).

@@ -1,7 +1,7 @@
 # CLI Commands (Cobra)
 
-Commands live in `cmd/`, one file per command. They use the Cobra
-lifecycle hooks like this:
+Commands live in `cmd/`, one file per command. Commands that connect to
+the desk use the Cobra lifecycle hooks like this:
 
 | Hook | Where | Responsibility |
 |------|-------|----------------|
@@ -11,6 +11,10 @@ lifecycle hooks like this:
 | `PostRun` | subcommand | Call `j.Disconnect()` |
 
 Follow `cmd/gotoHeight.go` when adding a command that connects to the desk.
+
+Commands that don't connect to a desk (`devices`, `version`) only
+define `Run`. They take no `--address` flag and never call `jiecang.Init`.
+Follow `cmd/listDevices.go` for these.
 
 Errors in every hook are printed to stderr, followed by `os.Exit(1)` (see
 [go-conventions.md](go-conventions.md#error-handling)).
