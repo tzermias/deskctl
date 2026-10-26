@@ -10,9 +10,12 @@ import (
 
 	"github.com/spf13/cobra"
 	"tinygo.org/x/bluetooth"
+
+	"github.com/tzermias/deskctl/pkg/logger"
 )
 
 var address string
+var verbose bool
 
 var adapter *bluetooth.Adapter
 
@@ -22,6 +25,13 @@ var rootCmd = &cobra.Command{
 	Long: `Controls standing desks equipped with Jiecang controllers
 Moves the desk up/down, manages memory presets`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		// Set verbose mode based on flag
+		logger.SetVerbose(verbose)
+
+		if verbose {
+			logger.Printf("Verbose mode enabled")
+		}
+
 		// Initialize bluetooth adapter
 		adapter = bluetooth.DefaultAdapter
 		err := adapter.Enable()
@@ -29,6 +39,8 @@ Moves the desk up/down, manages memory presets`,
 			fmt.Fprintf(os.Stderr, "Could not enable Bluetooth adapter: %v\n", err)
 			os.Exit(1)
 		}
+
+		logger.Printf("Bluetooth adapter enabled successfully")
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		_ = cmd.Help()
@@ -47,4 +59,5 @@ func Execute(ctx context.Context) {
 
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&address, "address", "a", "", "Device address")
+	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "enable verbose output")
 }

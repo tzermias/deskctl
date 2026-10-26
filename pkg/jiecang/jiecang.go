@@ -29,10 +29,11 @@ package jiecang
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"sync"
 
 	"tinygo.org/x/bluetooth"
+
+	"github.com/tzermias/deskctl/pkg/logger"
 )
 
 var commands = map[string][]byte{
@@ -171,7 +172,7 @@ func Init(a *bluetooth.Adapter, addr bluetooth.Address) (*Jiecang, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to read initial height: %w", err)
 	}
-	log.Printf("Initial height: %d mm", j.currentHeight)
+	logger.Printf("Initial height: %d mm", j.currentHeight)
 
 	//Fetch height memory presets
 	j.presets = make(map[string]uint8)
@@ -283,10 +284,10 @@ func (j *Jiecang) characteristicReceiver(buf []byte) {
 				j.AntiCollisionSensitivity = uint8(msg[i][3])
 				j.mu.Unlock()
 			default: // Any other case
-				log.Printf("Received: %x", msg[i])
+				logger.Printf("Received: %x", msg[i])
 			}
 		} else {
-			log.Printf("Received: %x", msg[i])
+			logger.Printf("Received: %x", msg[i])
 		}
 	}
 }
