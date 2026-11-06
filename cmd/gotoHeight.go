@@ -11,8 +11,6 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"github.com/tzermias/deskctl/pkg/jiecang"
-	"tinygo.org/x/bluetooth"
 )
 
 var height int
@@ -33,16 +31,8 @@ var gotoHeightCmd = &cobra.Command{
 			fmt.Fprintf(os.Stderr, "Invalid height value [%s]: %v\n", args[0], err)
 			os.Exit(1)
 		}
-		// Validate MAC address
-		var mac bluetooth.MAC
-		mac, err = bluetooth.ParseMAC(address)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Invalid MAC address [%s]: %v\n", address, err)
-			os.Exit(1)
-		}
-
-		//Initialize device
-		j, err = jiecang.Init(adapter, bluetooth.Address{MACAddress: bluetooth.MACAddress{MAC: mac}})
+		// Connect to the desk
+		j, err = connectDesk(cmd)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to initialize device: %v\n", err)
 			os.Exit(1)
@@ -70,5 +60,6 @@ var gotoHeightCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(gotoHeightCmd)
+	addAddressFlag(gotoHeightCmd)
 
 }

@@ -12,8 +12,6 @@ import (
 	"tinygo.org/x/bluetooth"
 )
 
-var address string
-
 var adapter *bluetooth.Adapter
 
 var rootCmd = &cobra.Command{
@@ -43,8 +41,4 @@ func Execute(ctx context.Context) {
 	if err != nil {
 		os.Exit(1)
 	}
-}
-
-func init() {
-	rootCmd.PersistentFlags().StringVarP(&address, "address", "a", "", "Device address")
 }

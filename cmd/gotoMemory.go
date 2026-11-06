@@ -12,7 +12,6 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/tzermias/deskctl/pkg/jiecang"
-	"tinygo.org/x/bluetooth"
 )
 
 var memoryNum int
@@ -32,16 +31,8 @@ var gotoMemoryCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		// Validate MAC address
-		var mac bluetooth.MAC
-		mac, err = bluetooth.ParseMAC(address)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Invalid MAC address [%s]: %v\n", address, err)
-			os.Exit(1)
-		}
-
-		//Initialize device
-		j, err = jiecang.Init(adapter, bluetooth.Address{MACAddress: bluetooth.MACAddress{MAC: mac}})
+		// Connect to the desk
+		j, err = connectDesk(cmd)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to initialize device: %v\n", err)
 			os.Exit(1)
@@ -69,5 +60,6 @@ var gotoMemoryCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(gotoMemoryCmd)
+	addAddressFlag(gotoMemoryCmd)
 
 }
