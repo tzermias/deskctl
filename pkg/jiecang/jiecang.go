@@ -31,6 +31,7 @@ import (
 	"fmt"
 	"log"
 	"sync"
+	"time"
 
 	"tinygo.org/x/bluetooth"
 )
@@ -51,6 +52,28 @@ var commands = map[string][]byte{
 	"fetch_all_time":     {0xf1, 0xf1, 0xaa, 0x00, 0xaa, 0x7e},
 }
 
+// defaultPollInterval is how often movement loops poll the desk height
+// and resend their command.
+const defaultPollInterval = 200 * time.Millisecond
+
+// characteristic is the subset of bluetooth.DeviceCharacteristic used by
+// Jiecang. It lets tests replace the BLE characteristics with a fake desk.
+type characteristic interface {
+	Read(p []byte) (int, error)
+	WriteWithoutResponse(p []byte) (int, error)
+	EnableNotifications(cb func([]byte)) error
+}
+
+// disconnecter is the subset of bluetooth.Device used by Jiecang.
+type disconnecter interface {
+	Disconnect() error
+}
+
+var (
+	_ characteristic = (*bluetooth.DeviceCharacteristic)(nil)
+	_ disconnecter   = bluetooth.Device{}
+)
+
 const (
 	BLEDeviceId      = 0xFE60
 	BLECharDataInId  = 0xFE61
@@ -64,9 +87,11 @@ const (
 // allowing safe use from multiple goroutines. Height values are stored
 // in centimeters for convenience.
 type Jiecang struct {
-	device  bluetooth.Device               // BLE device connection
-	dataIn  bluetooth.DeviceCharacteristic // Write characteristic for sending commands
-	dataOut bluetooth.DeviceCharacteristic // Read characteristic for receiving responses
+	device  disconnecter   // BLE device connection
+	dataIn  characteristic // Write characteristic for sending commands
+	dataOut characteristic // Read characteristic for receiving responses
+
+	pollInterval time.Duration // Polling period of movement loops
 
 	currentHeight uint8        // Current height in centimeters
 	mu            sync.RWMutex // Protects concurrent access to shared state
@@ -113,8 +138,6 @@ type Jiecang struct {
 //	}
 //	defer desk.Disconnect()
 func Init(a *bluetooth.Adapter, addr bluetooth.Address) (*Jiecang, error) {
-	j := new(Jiecang)
-
 	// Connect to BLE Device
 	d, err := a.Connect(addr, bluetooth.ConnectionParams{})
 	if err != nil {
@@ -130,13 +153,11 @@ func Init(a *bluetooth.Adapter, addr bluetooth.Address) (*Jiecang, error) {
 		return nil, fmt.Errorf("failed to discover services: %w", err)
 	}
 
-	serviceFound := false
 	for _, service := range services {
 		if service.UUID() != bluetooth.New16BitUUID(BLEDeviceId) {
 			// Wrong service
 			continue
 		}
-		serviceFound = true
 
 		// Found the correct service
 		// Get a list of characteristics below the service
@@ -152,29 +173,37 @@ func Init(a *bluetooth.Adapter, addr bluetooth.Address) (*Jiecang, error) {
 			return nil, fmt.Errorf("expected 2 characteristics, got %d", len(characteristics))
 		}
 
-		j.dataIn = characteristics[0]
-		j.dataOut = characteristics[1]
-		// Enable notifications on dataOut
-		err = j.dataOut.EnableNotifications(j.characteristicReceiver)
-		if err != nil {
-			return nil, fmt.Errorf("failed to enable notifications: %w", err)
-		}
+		return newJiecang(d, &characteristics[0], &characteristics[1])
 	}
 
-	if !serviceFound {
-		return nil, fmt.Errorf("BLE service %04x not found", BLEDeviceId)
+	return nil, fmt.Errorf("BLE service %04x not found", BLEDeviceId)
+}
+
+// newJiecang sets up a Jiecang on already discovered characteristics.
+// It enables notifications on out, reads the initial value and queries
+// the desk for its memory presets, height range and usage times.
+func newJiecang(dev disconnecter, in, out characteristic) (*Jiecang, error) {
+	j := &Jiecang{
+		device:       dev,
+		dataIn:       in,
+		dataOut:      out,
+		pollInterval: defaultPollInterval,
+		presets:      make(map[string]uint8),
+	}
+
+	// Enable notifications on dataOut
+	if err := j.dataOut.EnableNotifications(j.characteristicReceiver); err != nil {
+		return nil, fmt.Errorf("failed to enable notifications: %w", err)
 	}
 
 	// Read desk current height
 	result := []byte{}
-	_, err = j.dataOut.Read(result)
-	if err != nil {
+	if _, err := j.dataOut.Read(result); err != nil {
 		return nil, fmt.Errorf("failed to read initial height: %w", err)
 	}
 	log.Printf("Initial height: %d mm", j.currentHeight)
 
 	//Fetch height memory presets
-	j.presets = make(map[string]uint8)
 	if err := j.FetchHeight(); err != nil {
 		return nil, fmt.Errorf("failed to fetch height: %w", err)
 	}
@@ -192,7 +221,6 @@ func Init(a *bluetooth.Adapter, addr bluetooth.Address) (*Jiecang, error) {
 		return nil, fmt.Errorf("failed to fetch all time: %w", err)
 	}
 
-	j.device = d
 	return j, nil
 }
 

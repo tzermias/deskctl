@@ -40,8 +40,8 @@ func (j *Jiecang) Down() error {
 //   - Command transmission fails
 //   - The context is cancelled (returns ctx.Err())
 //
-// The function polls the height every 200ms and sends a stop command when
-// the target is reached or the operation is cancelled.
+// The function polls the height every pollInterval (200ms by default) and
+// sends a stop command when the operation is cancelled.
 func (j *Jiecang) GoToHeight(ctx context.Context, height uint8) error {
 	//Ensure that height is within low and high limits of the desk.
 	if height > j.HighestHeight || height < j.LowestHeight {
@@ -60,7 +60,7 @@ func (j *Jiecang) GoToHeight(ctx context.Context, height uint8) error {
 		0x7e,
 	}
 
-	ticker := time.NewTicker(200 * time.Millisecond)
+	ticker := time.NewTicker(j.pollInterval)
 	defer ticker.Stop()
 
 	for {
