@@ -41,7 +41,7 @@ func (j *Jiecang) GoToMemory(ctx context.Context, memoryNum int) error {
 		return fmt.Errorf("failed to send goto memory%d command: %w", memoryNum, err)
 	}
 
-	ticker := time.NewTicker(200 * time.Millisecond)
+	ticker := time.NewTicker(j.pollInterval)
 	defer ticker.Stop()
 
 	for {
@@ -129,7 +129,7 @@ func (j *Jiecang) SaveMemory(memoryNum int) error {
 	}
 
 	log.Printf("Saved height %d cm to memory %d", j.currentHeight, memoryNum)
-	time.Sleep(200 * time.Millisecond)
+	time.Sleep(j.pollInterval)
 	return nil
 }
 
