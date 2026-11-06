@@ -4,7 +4,7 @@ deps:
 	go mod tidy
 
 test: deps
-	go test -v ./...
+	go test -race -v ./...
 
 fmt:
 	gofmt -s -w .

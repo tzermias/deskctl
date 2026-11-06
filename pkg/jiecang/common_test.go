@@ -65,3 +65,22 @@ func TestIsValidData(t *testing.T) {
 		assert.Equal(t, test.expectedResult, result, test.name)
 	}
 }
+
+func FuzzIsValidData(f *testing.F) {
+	f.Add([]byte{0xf2, 0xf2, 0x01, 0x03, 0x03, 0x37, 0x07, 0x45, 0x7e})
+	f.Add([]byte{0xf2, 0xf2, 0x07, 0x04, 0x04, 0xf8, 0x02, 0x6c, 0x75, 0x7e})
+	f.Add([]byte{0xf2, 0xf2, 0x0e, 0x01, 0x00, 0x0f, 0x7e})
+	f.Add([]byte{0xf2, 0xf2, 0x01, 0x03, 0x04, 0x7e})
+	f.Add([]byte{0xde, 0xad, 0xbe, 0xef, 0x7e})
+
+	f.Fuzz(func(t *testing.T, data []byte) {
+		if !isValidData(data) {
+			return
+		}
+		// A valid frame must have the framing the decoders rely on.
+		assert.GreaterOrEqual(t, len(data), 6, "length")
+		assert.Equal(t, []byte{0xf2, 0xf2}, data[:2], "preamble")
+		assert.Equal(t, byte(0x7e), data[len(data)-1], "terminator")
+		assert.Less(t, int(data[3])+3, len(data)-2, "data length fits")
+	})
+}
