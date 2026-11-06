@@ -5,6 +5,7 @@ deskctl/
 ├── main.go              # Entry point, calls cmd.Execute(ctx)
 ├── cmd/                 # CLI commands (Cobra), one file per command
 │   ├── root.go          # Root command, enables the Bluetooth adapter
+│   ├── config.go        # --address flag, ~/.deskctl.yaml, connectDesk()
 │   ├── updown.go        # up / down
 │   ├── gotoHeight.go    # goto-height
 │   ├── gotoMemory.go    # goto-memory
@@ -25,6 +26,7 @@ deskctl/
 ## Dependencies
 
 - `github.com/spf13/cobra`: CLI framework
+- `github.com/spf13/viper`: reads the `~/.deskctl.yaml` config file
 - `tinygo.org/x/bluetooth`: BLE connectivity
 - `github.com/stretchr/testify`: test assertions
 
