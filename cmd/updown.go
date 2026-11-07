@@ -8,8 +8,6 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/tzermias/deskctl/pkg/jiecang"
-	"tinygo.org/x/bluetooth"
 )
 
 var upCmd = &cobra.Command{
@@ -20,16 +18,8 @@ var upCmd = &cobra.Command{
 	This command is equivalent of pressing the up button in your standing desk control once.
 	`,
 	PreRun: func(cmd *cobra.Command, args []string) {
-		// Validate MAC address
-		var mac bluetooth.MAC
-		mac, err := bluetooth.ParseMAC(address)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Invalid MAC address [%s]: %v\n", address, err)
-			os.Exit(1)
-		}
-
-		//Initialize device
-		j, err = jiecang.Init(adapter, bluetooth.Address{MACAddress: bluetooth.MACAddress{MAC: mac}})
+		var err error
+		j, err = connectDesk(cmd)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to initialize device: %v\n", err)
 			os.Exit(1)
@@ -57,16 +47,8 @@ var downCmd = &cobra.Command{
 	This command is equivalent of pressing the down button in your standing desk control once.
 	`,
 	PreRun: func(cmd *cobra.Command, args []string) {
-		// Validate MAC address
-		var mac bluetooth.MAC
-		mac, err := bluetooth.ParseMAC(address)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Invalid MAC address [%s]: %v\n", address, err)
-			os.Exit(1)
-		}
-
-		//Initialize device
-		j, err = jiecang.Init(adapter, bluetooth.Address{MACAddress: bluetooth.MACAddress{MAC: mac}})
+		var err error
+		j, err = connectDesk(cmd)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to initialize device: %v\n", err)
 			os.Exit(1)
@@ -88,5 +70,7 @@ var downCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(upCmd)
+	addAddressFlag(upCmd)
 	rootCmd.AddCommand(downCmd)
+	addAddressFlag(downCmd)
 }

@@ -31,21 +31,31 @@ deskctl devices
 ```
 For each supported device, MAC address, name and signal strength are shown.
 
-Some example commands. Use the MAC address provided from `deskctl devices`
+Then save the MAC address shown by `deskctl devices` in `~/.deskctl.yaml`, so you don't need to type it on every command:
+```yaml
+address: <DEVICE_MAC_ADDRESS>
+```
+
+You can also pass the address explicitly with `-a`/`--address`. It overrides the address in `~/.deskctl.yaml`:
+```bash
+deskctl -a <DEVICE_MAC_ADDRESS> up
+```
+
+Some example commands, assuming the address is set in `~/.deskctl.yaml`.
 
 ### Move up or down
 
 It is equivalent of pushing once the up or down button on your desk.
 ```bash
-deskctl -a <DEVICE_MAC_ADDRESS> up
-deskctl -a <DEVICE_MAC_ADDRESS> down
+deskctl up
+deskctl down
 ```
 
 ### Move the desk to a specific height
 
 Assuming that you just need to move the desk to an arbitrary height (e.g 107 cm), you can use the following command.
 ```bash 
-deskctl -a <DEVICE_MAC_ADDRESS>  goto-height 107
+deskctl goto-height 107
 ```
 
 ### Go to a memory preset
@@ -53,7 +63,7 @@ deskctl -a <DEVICE_MAC_ADDRESS>  goto-height 107
 Standing desks have usually up to 4 memory presets to store desk heights to. 
 If you are already have configured a memory preset (e.g memory preset 1), you can move the desk to that preset.
 ```bash
-deskctl -a <DEVICE_MAC_ADDRESS> goto-memory 1
+deskctl goto-memory 1
 ```
 
 ## Supported devices
